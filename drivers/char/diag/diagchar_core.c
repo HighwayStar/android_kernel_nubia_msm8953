@@ -144,6 +144,14 @@ module_param(max_clients, uint, 0);
 static struct timer_list drain_timer;
 static int timer_in_progress;
 
+/*
+ * Diag Mask clear variable
+ * Used for clearing masks upon
+ * USB disconnection and stopping ODL
+ */
+static int diag_mask_clear_param = 1;
+module_param(diag_mask_clear_param, int, 0644);
+
 struct diag_apps_data_t {
 	void *buf;
 	uint32_t len;
@@ -369,6 +377,11 @@ fail:
 	return -ENOMEM;
 }
 
+int diag_mask_param(void)
+{
+	return diag_mask_clear_param;
+}
+
 void diag_clear_masks(struct diag_md_session_t *info)
 {
 	int ret;
@@ -401,7 +414,8 @@ static void diag_close_logging_process(const int pid)
 	if (!session_info)
 		return;
 
-	diag_clear_masks(session_info);
+	if (diag_mask_clear_param)
+		diag_clear_masks(session_info);
 
 	mutex_lock(&driver->diag_maskclear_mutex);
 	driver->mask_clear = 1;
