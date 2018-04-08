@@ -13,6 +13,10 @@ if INPUT_TOUCHSCREEN
 
 source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
 source "drivers/input/touchscreen/synaptics_dsx_2.6/Kconfig"
+source "drivers/input/touchscreen/atmel/Kconfig"
+source "drivers/input/touchscreen/nubia_synaptics_dsx/Kconfig"
+source "drivers/input/touchscreen/nubia_synaptics_s1302/Kconfig"
+source "drivers/input/touchscreen/gt1x/Kconfig"
 
 config OF_TOUCHSCREEN
 	def_tristate INPUT
@@ -994,6 +998,17 @@ config TOUCHSCREEN_FT5X06_GESTURE
          feature.
 
          If unsure, say N.
+
+config TOUCHSCREEN_MSTAR21XX
+        tristate "mstar touchscreens"
+        depends on I2C
+        help
+         Say Y here if you have a mstar touchscreen.
+
+         If unsure, say N.
+
+         To compile this driver as a module, choose M here: the
+         module will be called msg21xx_ts.
 
 config TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE_EXTRA_SYSFS
 	bool "Synaptics DSX firmware update extra sysfs attributes"

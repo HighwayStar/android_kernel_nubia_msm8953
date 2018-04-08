@@ -45,6 +45,11 @@
 #include <asm/cacheflush.h>
 #include "audit.h"	/* audit_signal_info() */
 
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+#include <linux/cgroup.h>
+#include <linux/notifier.h>
+#endif
+
 /*
  * SLAB caches for signal bits.
  */
@@ -837,6 +842,16 @@ static bool prepare_signal(int sig, struct task_struct *p, bool force)
 	struct signal_struct *signal = p->signal;
 	struct task_struct *t;
 	sigset_t flush;
+
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+	if (sig == SIGQUIT || sig == SIGABRT || sig == SIGKILL || sig == SIGSEGV) {
+		struct cgf_event event;
+
+		event.info = signal;
+		event.data = p;
+		cgf_notifier_call_chain(sig, &event);
+	}
+#endif
 
 	if (signal->flags & (SIGNAL_GROUP_EXIT | SIGNAL_GROUP_COREDUMP)) {
 		if (signal->flags & SIGNAL_GROUP_COREDUMP)

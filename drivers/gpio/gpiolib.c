@@ -988,7 +988,7 @@ static int _gpiod_direction_output_raw(struct gpio_desc *desc, int value)
 {
 	struct gpio_chip	*chip;
 	int			status = -EINVAL;
-
+#if 0
 	/* GPIOs used for IRQs shall not be set as output */
 	if (test_bit(FLAG_USED_AS_IRQ, &desc->flags)) {
 		gpiod_err(desc,
@@ -996,7 +996,7 @@ static int _gpiod_direction_output_raw(struct gpio_desc *desc, int value)
 			  __func__);
 		return -EIO;
 	}
-
+#endif
 	/* Open drain pin should not be driven to 1 */
 	if (value && test_bit(FLAG_OPEN_DRAIN,  &desc->flags))
 		return gpiod_direction_input(desc);
@@ -1060,9 +1060,11 @@ int gpiod_direction_output(struct gpio_desc *desc, int value)
 		pr_warn("%s: invalid GPIO\n", __func__);
 		return -EINVAL;
 	}
+
 	if (test_bit(FLAG_ACTIVE_LOW, &desc->flags))
 		value = !value;
 	return _gpiod_direction_output_raw(desc, value);
+
 }
 EXPORT_SYMBOL_GPL(gpiod_direction_output);
 

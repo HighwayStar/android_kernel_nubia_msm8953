@@ -25,6 +25,12 @@
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
+#ifdef CONFIG_AL3200
+extern int imx258_main_state;
+extern int imx258_aux_state;
+extern int front_sensor_s5k3p3;
+#endif
+
 int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 	int num_vreg, struct msm_sensor_power_setting *power_setting,
 	uint16_t power_setting_size)
@@ -1594,10 +1600,24 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 			if (!ctrl->gpio_conf->gpio_num_info->valid
 				[pd->seq_val])
 				continue;
-			gpio_set_value_cansleep(
-				ctrl->gpio_conf->gpio_num_info->gpio_num
-				[pd->seq_val],
-				(int) pd->config_val);
+#ifdef CONFIG_AL3200
+			if((imx258_main_state == 1)&&(imx258_aux_state == 1)&&(pd->seq_val == SENSOR_GPIO_VIO)){
+				pr_err("%s dual camera power on break\n", __func__);
+				break;
+			}
+                        else if((imx258_main_state == 1)&&(front_sensor_s5k3p3 == 1)&&(pd->seq_val == SENSOR_GPIO_VIO))
+			{
+                             pr_err("%s main camera and front camera power on break\n", __func__);
+			     break;
+                        }else{
+#endif
+				gpio_set_value_cansleep(
+					ctrl->gpio_conf->gpio_num_info->gpio_num
+					[pd->seq_val],
+					(int) pd->config_val);
+#ifdef CONFIG_AL3200
+			}
+#endif
 			break;
 		case SENSOR_VREG:
 			if (pd->seq_val == INVALID_VREG)
@@ -1627,11 +1647,25 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 			} else
 				pr_err("%s error in power up/down seq data\n",
 								__func__);
-			ret = msm_cam_sensor_handle_reg_gpio(pd->seq_val,
-				ctrl->gpio_conf, GPIOF_OUT_INIT_LOW);
-			if (ret < 0)
-				pr_err("ERR:%s Error while disabling VREG GPIO\n",
-					__func__);
+#ifdef CONFIG_AL3200
+			if((imx258_main_state == 1)&&(imx258_aux_state == 1)&&(pd->seq_val == CAM_VIO)){
+				pr_err("%s dual camera power on break\n", __func__);
+				break;
+			}
+                        else if((imx258_main_state == 1)&&(front_sensor_s5k3p3 == 1)&&(pd->seq_val == CAM_VIO))
+			{
+                             pr_err("%s main camera and front camera power on break\n", __func__);
+			     break;
+                        }else{
+#endif
+				ret = msm_cam_sensor_handle_reg_gpio(pd->seq_val,
+					ctrl->gpio_conf, GPIOF_OUT_INIT_LOW);
+				if (ret < 0)
+					pr_err("ERR:%s Error while disabling VREG GPIO\n",
+						__func__);
+#ifdef CONFIG_AL3200
+			}
+#endif
 			break;
 		case SENSOR_I2C_MUX:
 			if (ctrl->i2c_conf && ctrl->i2c_conf->use_i2c_mux)

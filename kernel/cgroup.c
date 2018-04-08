@@ -60,6 +60,10 @@
 
 #include <linux/atomic.h>
 
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+#include <linux/notifier.h>
+#endif
+
 /*
  * pidlists linger the following amount before being destroyed.  The goal
  * is avoiding frequent destruction in the middle of consecutive read calls
@@ -2504,6 +2508,136 @@ static ssize_t cgroup_tasks_write(struct kernfs_open_file *of,
 {
 	return __cgroup_procs_write(of, buf, nbytes, off, false);
 }
+
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+static int attach_task_by_pid(struct cgroup *cgrp, u64 pid, bool threadgroup)
+{
+	struct task_struct *tsk;
+	const struct cred *cred = current_cred(), *tcred;
+	int ret;
+
+	if (pid < 0)
+		return -EINVAL;
+
+	if (!cgroup_tryget(cgrp))
+		return -ENODEV;
+
+	mutex_lock(&cgroup_mutex);
+	if (cgroup_is_dead(cgrp)) {
+		mutex_unlock(&cgroup_mutex);
+		cgroup_put(cgrp);
+		return -ENODEV;
+	}
+retry_find_task:
+	rcu_read_lock();
+	if (pid) {
+		tsk = find_task_by_vpid(pid);
+		if (!tsk) {
+			rcu_read_unlock();
+			ret = -ESRCH;
+			goto out_unlock_cgroup;
+		}
+		/*
+		 * even if we're attaching all tasks in the thread group, we
+		 * only need to check permissions on one of them.
+		 */
+		tcred = __task_cred(tsk);
+		if (!uid_eq(cred->euid, GLOBAL_ROOT_UID) &&
+		    !uid_eq(cred->euid, tcred->uid) &&
+		    !uid_eq(cred->euid, tcred->suid)) {
+			/*
+			 * if the default permission check fails, give each
+			 * cgroup a chance to extend the permission check
+			 */
+			struct cgroup_taskset tset = {
+				.src_csets = LIST_HEAD_INIT(tset.src_csets),
+				.dst_csets = LIST_HEAD_INIT(tset.dst_csets),
+				.csets = &tset.src_csets,
+			};
+			struct css_set *cset;
+			cset = task_css_set(tsk);
+			list_add(&cset->mg_node, &tset.src_csets);
+			ret = cgroup_allow_attach(cgrp, &tset);
+			list_del_init(&cset->mg_node);
+			if (ret) {
+				rcu_read_unlock();
+				goto out_unlock_cgroup;
+			}
+		}
+	} else
+		tsk = current;
+
+	if (threadgroup)
+		tsk = tsk->group_leader;
+
+	/*
+	 * Workqueue threads may acquire PF_NO_SETAFFINITY and become
+	 * trapped in a cpuset, or RT worker may be born in a cgroup
+	 * with no rt_runtime allocated.  Just say no.
+	 */
+	if (tsk == kthreadd_task || (tsk->flags & PF_NO_SETAFFINITY)) {
+		ret = -EINVAL;
+		rcu_read_unlock();
+		goto out_unlock_cgroup;
+	}
+
+	get_task_struct(tsk);
+	rcu_read_unlock();
+
+	threadgroup_lock(tsk);
+	if (threadgroup) {
+		if (!thread_group_leader(tsk)) {
+			/*
+			 * a race with de_thread from another thread's exec()
+			 * may strip us of our leadership, if this happens,
+			 * there is no choice but to throw this task away and
+			 * try again; this is
+			 * "double-double-toil-and-trouble-check locking".
+			 */
+			threadgroup_unlock(tsk);
+			put_task_struct(tsk);
+			goto retry_find_task;
+		}
+	}
+
+	ret = cgroup_attach_task(cgrp, tsk, threadgroup);
+
+	threadgroup_unlock(tsk);
+
+	put_task_struct(tsk);
+out_unlock_cgroup:
+	mutex_unlock(&cgroup_mutex);
+	return ret;
+}
+
+int cgf_attach_task_group(struct cgf_event *event)
+{
+	struct freezer *freezer = container_of(event, struct freezer, event);
+	struct task_struct *p, *t;
+	int ret = 0;
+
+	if(!freezer->event.data) {
+		ret = -EINVAL;
+		goto out_invalid_data;
+	}
+	p = freezer->event.data;
+	t = p;
+	/* attatch all the children processes*/
+	do {
+		ret = attach_task_by_pid(freezer->css.cgroup, t->pid, false);
+		if(ret)
+			goto out_attach_failed;
+	}while_each_thread(p, t);
+
+out_attach_failed:
+	if (ret)
+		printk(KERN_ERR"[CGF] %s, Attaching children task :%d (%s) failed with error code: %d\n",
+			__func__, (int)t->pid, t->comm, ret);
+out_invalid_data:
+	return ret;
+}
+EXPORT_SYMBOL_GPL(cgf_attach_task_group);
+#endif
 
 #ifdef CONFIG_CGROUP_SCHED
 int cgroup_attach_task_to_root(struct task_struct *tsk, int wait)

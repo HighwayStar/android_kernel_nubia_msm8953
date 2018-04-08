@@ -38,6 +38,12 @@
 #define EMERGENCY_DLOAD_MAGIC3    0x77777777
 #define EMMC_DLOAD_TYPE		0x2
 
+/* this flag must be the same as in bootable/bootloader/lk/app/aboot/aboot.c */
+#ifdef CONFIG_ZTEMT_PANIC_BOOTMODE
+#define PANIC_HARD_RESET_MODE  0x07
+#define PANIC_MODE                0x77665523
+#endif
+
 #define SCM_IO_DISABLE_PMIC_ARBITER	1
 #define SCM_IO_DEASSERT_PS_HOLD		2
 #define SCM_WDOG_DEBUG_BOOT_PART	0x9
@@ -272,6 +278,10 @@ static void msm_restart_prepare(const char *cmd)
 
 	set_dload_mode(download_mode &&
 			(in_panic || restart_mode == RESTART_DLOAD));
+
+#ifdef CONFIG_ZTEMT_RESTART
+	printk(KERN_EMERG "ztemt: %s:%d: download_mode=%x,in_panic=%x,restart_mode=%x\n",__func__,__LINE__,download_mode,in_panic,restart_mode);
+#endif
 #endif
 
 	if (qpnp_pon_check_hard_reset_stored()) {
@@ -280,11 +290,36 @@ static void msm_restart_prepare(const char *cmd)
 			((cmd != NULL && cmd[0] != '\0') &&
 			!strcmp(cmd, "edl")))
 			need_warm_reset = true;
+
+#ifdef CONFIG_ZTEMT_PANIC_BOOTMODE
+		if (get_dload_mode() || in_panic)
+			need_warm_reset = true;
+
+		printk(KERN_EMERG "ztemt: %s:%d: qpnp_pon_check_hard_reset_stored()\n",__func__,__LINE__);
+#endif
+
 	} else {
+#ifdef CONFIG_ZTEMT_PANIC_BOOTMODE
+		need_warm_reset = (get_dload_mode() ||
+				(cmd != NULL && cmd[0] != '\0') || in_panic);
+
+#ifdef CONFIG_ZTEMT_CHARGER
+		if((cmd != NULL && cmd[0] != '\0') && !in_panic ){
+			if(!strncmp(cmd, "poweroffchg",11)){
+				need_warm_reset = false;
+			}
+		}
+#endif
+
+#else
 		need_warm_reset = (get_dload_mode() ||
 				(cmd != NULL && cmd[0] != '\0'));
+#endif
 	}
 
+#ifdef CONFIG_ZTEMT_PANIC_BOOTMODE
+	printk(KERN_EMERG "ztemt: %s:%d: need_warm_reset=%s \n",__func__,__LINE__,need_warm_reset==true?"true":"false");
+#endif
 	/* Hard reset the PMIC unless memory contents must be maintained. */
 	if (need_warm_reset) {
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
@@ -330,6 +365,17 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x77665501, restart_reason);
 		}
 	}
+
+#ifdef CONFIG_ZTEMT_PANIC_BOOTMODE
+	if (in_panic)
+	{
+		printk(KERN_EMERG "%s:%d: ZTEMT SET PANIC HARD REBOOT REASON\n",__func__,__LINE__);
+		qpnp_pon_set_restart_reason(PANIC_HARD_RESET_MODE);
+
+		printk(KERN_EMERG "%s:%d: ZTEMT SET PANIC REBOOT REASON\n",__func__,__LINE__);
+		__raw_writel(PANIC_MODE, restart_reason);
+	}
+#endif
 
 	flush_cache_all();
 

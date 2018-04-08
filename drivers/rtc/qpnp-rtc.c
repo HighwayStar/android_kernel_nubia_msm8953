@@ -623,6 +623,58 @@ fail_rtc_enable:
 	return rc;
 }
 
+#ifdef CONFIG_ZTEMT_POWER_DEBUG
+static time_t rtc_suspend_sec = 0;
+static time_t rtc_resume_sec = 0;
+static unsigned long all_sleep_time = 0;
+static unsigned long all_wake_time = 0;
+
+static int print_suspend_time(struct device *dev)
+{
+	int rc, diff=0;
+	struct rtc_time tm;
+	unsigned long now;
+
+	rc = qpnp_rtc_read_time(dev,&tm);
+ 	if(rc) {
+	  printk("%s: Unable to read from RTC\n", __func__);
+	}
+
+	rtc_tm_to_time(&tm, &now);
+	rtc_suspend_sec = now;
+	diff = rtc_suspend_sec - rtc_resume_sec;
+	all_wake_time += diff;
+	printk("I have work %d seconds all_wake_time %lu seconds\n",diff,all_wake_time);
+
+	return 0;
+}
+
+static int print_resume_time(struct device *dev)
+{
+	int rc, diff=0;
+	struct rtc_time tm;
+	unsigned long now;
+
+	rc = qpnp_rtc_read_time(dev,&tm);
+ 	if (rc) {
+	  printk("%s: Unable to read from RTC\n", __func__);
+	}
+
+	rtc_tm_to_time(&tm, &now);
+	rtc_resume_sec = now;
+	diff = rtc_resume_sec - rtc_suspend_sec;
+	all_sleep_time += diff;
+	printk("I have sleep %d seconds all_sleep_time %lu seconds\n",diff,all_sleep_time);
+
+	return 0;
+}
+
+static const struct dev_pm_ops qpnp_rtc_pm_ops = {
+	.suspend = print_suspend_time,
+	.resume = print_resume_time,
+};
+#endif
+
 static int qpnp_rtc_remove(struct spmi_device *spmi)
 {
 	struct qpnp_rtc *rtc_dd = dev_get_drvdata(&spmi->dev);
@@ -695,6 +747,11 @@ static struct spmi_driver qpnp_rtc_driver = {
 		.name   = "qcom,qpnp-rtc",
 		.owner  = THIS_MODULE,
 		.of_match_table = spmi_match_table,
+
+		#ifdef CONFIG_ZTEMT_POWER_DEBUG
+        		.pm	= &qpnp_rtc_pm_ops,
+        #endif //CONFIG_ZTEMT_POWER_DEBUG
+
 	},
 };
 

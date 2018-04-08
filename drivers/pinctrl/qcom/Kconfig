@@ -127,6 +127,14 @@ config PINCTRL_MSM8953
 	  This is the pinctrl, pinmux, pinconf and gpiolib driver for the
 	  Qualcomm TLMM block found in the Qualcomm MSM8953 platform.
 
+config FEATURE_ZTEMT_SKIP_TZ_MASK
+	tristate "Feature ztemt skip TZ mask"
+	depends on GPIOLIB && OF && (ARCH_MSM8953 || COMPILE_TEST) && DEBUG_FS && PINCTRL_MSM8953
+	select PINCTRL_MSM
+	help
+	  This is in the Qualcomm MSM8953 platform,when cat the debugfs node "gpio"
+	  when the gpio pin is TZ protect,skip it, avoid happy TZ crash when get gpio status.
+
 config PINCTRL_MSM8909
 	tristate "QTI MSM8909 pin controller driver"
 	depends on GPIOLIB && OF && (ARCH_MSM8909 || COMPILE_TEST)

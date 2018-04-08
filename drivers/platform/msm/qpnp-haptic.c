@@ -363,6 +363,9 @@ struct qpnp_hap {
 	bool correct_lra_drive_freq;
 	bool misc_trim_error_rc19p2_clk_reg_present;
 	bool perform_lra_auto_resonance_search;
+#ifdef CONFIG_ZTEMT_HAPTIC_VIBRATOR
+	u32 ztemt_vibrator_ms;
+#endif
 };
 
 static struct qpnp_hap *ghap;
@@ -1663,6 +1666,9 @@ static void qpnp_hap_td_enable(struct timed_output_dev *dev, int value)
 		}
 		hap->state = 0;
 	} else {
+#ifdef CONFIG_ZTEMT_HAPTIC_VIBRATOR
+	value = value +hap->ztemt_vibrator_ms;
+#endif
 		value = (value > hap->timeout_ms ?
 				 hap->timeout_ms : value);
 		hap->state = 1;
@@ -2130,6 +2136,18 @@ static int qpnp_hap_parse_dt(struct qpnp_hap *hap)
 		dev_err(&spmi->dev, "Unable to read timeout\n");
 		return rc;
 	}
+
+#ifdef CONFIG_ZTEMT_HAPTIC_VIBRATOR
+	hap->ztemt_vibrator_ms=0;
+	rc = of_property_read_u32(spmi->dev.of_node,
+			"qcom,ztemt_vibrator_ms", &temp);
+	if (!rc) {
+		hap->ztemt_vibrator_ms = temp;
+	} else if (rc != -EINVAL) {
+		dev_err(&spmi->dev, "Unable to read ztemt_vibrator_ms\n");
+		return rc;
+	}
+#endif
 
 	hap->act_type = QPNP_HAP_LRA;
 	rc = of_property_read_string(spmi->dev.of_node,

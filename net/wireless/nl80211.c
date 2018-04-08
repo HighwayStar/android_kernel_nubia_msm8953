@@ -2519,15 +2519,31 @@ static int nl80211_set_interface(struct sk_buff *skb, struct genl_info *info)
 		ntype = nla_get_u32(info->attrs[NL80211_ATTR_IFTYPE]);
 		if (otype != ntype)
 			change = true;
-		if (ntype > NL80211_IFTYPE_MAX)
+// NUBIA DELETE for PR00365123 add more log for debug
+//		if (ntype > NL80211_IFTYPE_MAX)
+//			return -EINVAL;
+// NUBIA DELETE end
+// NUBIA ADD for PR00365123 add more log for debug
+		if (ntype > NL80211_IFTYPE_MAX){
+			pr_info("nl80211_set_interface:IFTYPE ntype %d EINVAL\n", ntype);
 			return -EINVAL;
+		}
+// NUBIA ADD end
 	}
 
 	if (info->attrs[NL80211_ATTR_MESH_ID]) {
 		struct wireless_dev *wdev = dev->ieee80211_ptr;
-
-		if (ntype != NL80211_IFTYPE_MESH_POINT)
+// NUBIA DELETE for PR00365123 add more log for debug
+//		if (ntype > NL80211_IFTYPE_MESH_POINT)
+//			return -EINVAL;
+// NUBIA DELETE end
+// NUBIA ADD for PR00365123 add more log for debug
+		if (ntype != NL80211_IFTYPE_MESH_POINT){
+			pr_info("nl80211_set_interface:MESH_ID ntype %d EINVAL\n", ntype);
 			return -EINVAL;
+		}
+// NUBIA ADD end
+
 		if (netif_running(dev))
 			return -EBUSY;
 
@@ -2545,6 +2561,10 @@ static int nl80211_set_interface(struct sk_buff *skb, struct genl_info *info)
 		params.use_4addr = !!nla_get_u8(info->attrs[NL80211_ATTR_4ADDR]);
 		change = true;
 		err = nl80211_valid_4addr(rdev, dev, params.use_4addr, ntype);
+// NUBIA ADD for PR00365123 add more log for debug
+		if(-EINVAL == err)
+			pr_info("nl80211_set_interface:4ADDR ntype %d EINVAL\n", ntype);
+// NUBIA ADD end
 		if (err)
 			return err;
 	} else {
@@ -2552,10 +2572,23 @@ static int nl80211_set_interface(struct sk_buff *skb, struct genl_info *info)
 	}
 
 	if (info->attrs[NL80211_ATTR_MNTR_FLAGS]) {
-		if (ntype != NL80211_IFTYPE_MONITOR)
+// NUBIA DELETE for PR00365123 add more log for debug
+//		if (ntype > NL80211_IFTYPE_MONITOR)
+//			return -EINVAL;
+// NUBIA DELETE end
+// NUBIA ADD for PR00365123 add more log for debug
+		if (ntype != NL80211_IFTYPE_MONITOR){
+			pr_info("nl80211_set_interface:MNTR_FLAGS ntype %d EINVAL\n", ntype);
 			return -EINVAL;
+		}
+// NUBIA ADD end
+
 		err = parse_monitor_flags(info->attrs[NL80211_ATTR_MNTR_FLAGS],
 					  &_flags);
+// NUBIA ADD for PR00365123 add more log for debug
+		if(-EINVAL == err)
+			pr_info("nl80211_set_interface:parse_monitor_flags MNTR_FLAGS ntype %d EINVAL\n", ntype);
+// NUBIA ADD end
 		if (err)
 			return err;
 
@@ -2571,7 +2604,10 @@ static int nl80211_set_interface(struct sk_buff *skb, struct genl_info *info)
 		err = cfg80211_change_iface(rdev, dev, ntype, flags, &params);
 	else
 		err = 0;
-
+// NUBIA ADD for PR00365123 add more log for debug
+	if(-EINVAL == err)
+		pr_info("nl80211_set_interface:cfg80211_change_iface ntype %d EINVAL\n", ntype);
+// NUBIA ADD end
 	if (!err && params.use_4addr != -1)
 		dev->ieee80211_ptr->use_4addr = params.use_4addr;
 

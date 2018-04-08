@@ -57,6 +57,9 @@ obj-$(CONFIG_CHARGER_BQ24190)	+= bq24190_charger.o
 obj-$(CONFIG_CHARGER_BQ24735)	+= bq24735-charger.o
 obj-$(CONFIG_FUELGAUGE_STC3117)	+= stc3117_battery.o
 obj-$(CONFIG_POWER_AVS)		+= avs/
+
+obj-$(CONFIG_ZTEMT_POWER_DEBUG)	+= ztemt_power_debug.o
+
 obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_SMB349_USB_CHARGER)   += smb349-charger.o
 obj-$(CONFIG_SMB349_DUAL_CHARGER)   += smb349-dual-charger.o
@@ -73,10 +76,18 @@ obj-$(CONFIG_QPNP_FG)		+= qpnp-fg.o
 obj-$(CONFIG_QPNP_CHARGER)	+= qpnp-charger.o
 obj-$(CONFIG_QPNP_LINEAR_CHARGER)	+= qpnp-linear-charger.o
 obj-$(CONFIG_QPNP_SMBCHARGER)	+= qpnp-smbcharger.o pmic-voter.o
+obj-$(CONFIG_ZTEMT_FUEL_GAUGE)	+= nubia_fuelgauge_cntl.o
 obj-$(CONFIG_QPNP_TYPEC)	+= qpnp-typec.o
+
+obj-$(CONFIG_NUBIA_WEIPU_CHARGER)	       += nubia_weipu_charger.o
+
 obj-$(CONFIG_CHARGER_TPS65090)	+= tps65090-charger.o
 obj-$(CONFIG_BATTERY_BCL)	+= battery_current_limit.o
 obj-$(CONFIG_MSM_BCL_CTL)	+= msm_bcl.o
 obj-$(CONFIG_MSM_BCL_PERIPHERAL_CTL) += bcl_peripheral.o
 obj-$(CONFIG_POWER_RESET)	+= reset/
 obj-$(CONFIG_ARCH_MSM)		+= qcom/
+obj-$(CONFIG_ZTEMT_HW_VERSION)	+= ztemt_hw_version.o
+
+obj-$(CONFIG_BATTERY_BQ27520) += bq27520_battery.o
+obj-$(CONFIG_BATTERY_BQ27520) += nubia_fuelgauge_cntl.o

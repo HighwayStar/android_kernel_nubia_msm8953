@@ -27,6 +27,7 @@ obj-$(CONFIG_SENSORS_AD7414)	+= ad7414.o
 obj-$(CONFIG_SENSORS_AD7418)	+= ad7418.o
 obj-$(CONFIG_SENSORS_ADC128D818) += adc128d818.o
 obj-$(CONFIG_SENSORS_ADCXX)	+= adcxx.o
+obj-$(CONFIG_ZTEMT_LIQUID_LED_AW2013)  += aw2013.o
 obj-$(CONFIG_SENSORS_ADM1021)	+= adm1021.o
 obj-$(CONFIG_SENSORS_ADM1025)	+= adm1025.o
 obj-$(CONFIG_SENSORS_ADM1026)	+= adm1026.o
@@ -156,6 +157,9 @@ obj-$(CONFIG_SENSORS_WM8350)	+= wm8350-hwmon.o
 obj-$(CONFIG_SENSORS_EPM_ADC)	+= epm_adc.o
 obj-$(CONFIG_SENSORS_QPNP_ADC_VOLTAGE)	+= qpnp-adc-voltage.o qpnp-adc-common.o
 obj-$(CONFIG_SENSORS_QPNP_ADC_CURRENT)	+= qpnp-adc-current.o qpnp-adc-common.o
+################################################# NUBIA SENSOR START
+obj-$(CONFIG_NUBIA_SENSORS)			+= nubia_sensors/
+################################################# NUBIA SENSOR END
 
 obj-$(CONFIG_PMBUS)		+= pmbus/
 

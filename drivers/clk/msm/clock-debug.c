@@ -34,7 +34,11 @@ static LIST_HEAD(clk_list);
 static DEFINE_MUTEX(clk_list_lock);
 
 static struct dentry *debugfs_base;
+#ifdef CONFIG_ZTEMT_POWER_DEBUG
+static u32 debug_suspend = 1;
+#else
 static u32 debug_suspend;
+#endif //CONFIG_ZTEMT_POWER_DEBUG
 
 static int clock_debug_rate_set(void *data, u64 val)
 {

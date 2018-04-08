@@ -88,3 +88,9 @@ config MMC_BLOCK_TEST
 	  Currently used to test eMMC 4.5 features (packed commands, sanitize,
 	  BKOPs).
 
+config ZTEMT_REDUCE_FACTORY_RESET_TIME
+	bool "MMC block device driver"
+	depends on MMC_BLOCK
+	default y
+	help
+	  ZTEMT REDUCE FACTORY RESET TIME

@@ -39,6 +39,15 @@ extern int cgroupstats_build(struct cgroupstats *stats,
 
 extern int proc_cgroup_show(struct seq_file *m, struct pid_namespace *ns,
 			    struct pid *pid, struct task_struct *tsk);
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+#define	NUBIA_FREEZER_SS_NAME	"freezer"
+#define	NUBIA_FREEZER_KN_NAME	""
+struct cgf_event;
+extern int cgf_register_notifier(struct notifier_block *nb);
+extern int cgf_unregister_notifier(struct notifier_block *nb);
+extern int cgf_notifier_call_chain(unsigned long val, void *v);
+extern int cgf_attach_task_group(struct cgf_event *event);
+#endif
 
 /* define the enumeration of all cgroup subsystems */
 #define SUBSYS(_x) _x ## _cgrp_id,
@@ -242,6 +251,23 @@ struct cgroup {
 	/* used to schedule release agent */
 	struct work_struct release_agent_work;
 };
+
+#ifdef CONFIG_NUBIA_CGF_NOTIFY_EVENT
+struct cgf_event {
+	struct signal_struct *info;
+	void *data;
+};
+
+struct freezer {
+	struct cgroup_subsys_state	css;
+	struct notifier_block 	nf;
+	struct cgf_event	event;
+	struct workqueue_struct *cgf_notify_wq;
+	struct work_struct	cgf_notify_work;
+	unsigned int		state;
+	spinlock_t		lock;
+};
+#endif
 
 #define MAX_CGROUP_ROOT_NAMELEN 64
 

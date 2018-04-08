@@ -60,6 +60,11 @@
 #define CREATE_TRACE_POINTS
 #include "trace/lowmemorykiller.h"
 
+//nubia add
+static int fail_find_process = 0;
+#define MAX_FAIL_FIND_PROCESS 5
+//nubia add end
+
 static uint32_t lowmem_debug_level = 1;
 static short lowmem_adj[6] = {
 	0,
@@ -440,12 +445,23 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 	selected_oom_score_adj = min_score_adj;
 
 	rcu_read_lock();
+// nubia add
+selected_process:
+// nubia add end
 	for_each_process(tsk) {
 		struct task_struct *p;
 		short oom_score_adj;
 
 		if (tsk->flags & PF_KTHREAD)
 			continue;
+
+        // nubia add
+        // Skip 'D' state but not frozen process. The frozen process can
+        // be killed by 'process frozen function'
+        if ((tsk->state & TASK_UNINTERRUPTIBLE) && (!(tsk->flags & PF_FROZEN))) {
+            continue;
+        }
+        // nubia add end
 
 		/* if task no longer has any memory ignore it */
 		if (test_task_flag(tsk, TIF_MM_RELEASED))
@@ -487,6 +503,27 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		lowmem_print(3, "select '%s' (%d), adj %hd, size %d, to kill\n",
 			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
+
+    // nubia add
+    if (!selected) {
+        ++fail_find_process;
+        // can not find a process to kill
+        if (fail_find_process == MAX_FAIL_FIND_PROCESS) {
+            // try to use a min adj, and find it again
+            if (array_size > 3) {
+                selected_oom_score_adj = min_score_adj = lowmem_adj[3];
+                goto selected_process;
+            } else {
+                fail_find_process = 0;
+            }
+        } else if (fail_find_process > MAX_FAIL_FIND_PROCESS) {
+            fail_find_process = 0;
+        }
+    } else {
+        fail_find_process = 0;
+    }
+    // nubia add end
+
 	if (selected) {
 		long cache_size = other_file * (long)(PAGE_SIZE / 1024);
 		long cache_limit = minfree * (long)(PAGE_SIZE / 1024);

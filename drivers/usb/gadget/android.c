@@ -2604,7 +2604,14 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		goto err_usb_get_function_instance;
 	}
 
+#ifdef CONFIG_ZTEMT_USB
 	fsg_mod_data.removable[0] = true;
+	fsg_mod_data.cdrom[0] = true;
+	fsg_mod_data.ro[0] = true;
+	fsg_mod_data.luns = 1;
+#else
+	fsg_mod_data.removable[0] = true;
+#endif
 	fsg_config_from_params(&m_config, &fsg_mod_data, fsg_num_buffers);
 	fsg_opts = fsg_opts_from_func_inst(config->f_ms_inst);
 	ret = fsg_common_set_num_buffers(fsg_opts->common, fsg_num_buffers);
@@ -2638,6 +2645,10 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	}
 
 	/* use default one currently */
+#ifdef CONFIG_ZTEMT_USB
+      m_config.vendor_name="nubia";
+      m_config.product_name="Android";
+#endif
 	fsg_common_set_inquiry_string(fsg_opts->common, m_config.vendor_name,
 							m_config.product_name);
 

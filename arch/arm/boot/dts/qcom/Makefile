@@ -190,7 +190,9 @@ dtb-$(CONFIG_ARCH_MSM8909) += msm8909-pm8916-mtp.dtb \
 
 
 ifeq ($(CONFIG_ARM64),y)
-always          := $(dtb-y)
+#always          := $(dtb-y)
+#ztemt modify for dts
+always          := $(ZTEMT_DTS_NAME).dtb
 subdir-y        := $(dts-dirs)
 else
 targets += dtbs
