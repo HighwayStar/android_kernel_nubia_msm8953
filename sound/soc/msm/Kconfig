@@ -87,6 +87,11 @@ config QTI_PP
 	 tuning parameters of various modules such as equalizer,
 	 customized mixing.
 
+config FEATURE_ZTEMT_AUDIO_EXT_PA
+       tristate "use to enable the external audio PA AW8736"
+       default n
+       help
+       use to enable the external audio PA AW8736
 config SND_SOC_CPE
 	tristate "CPE drivers"
 	depends on SND_SOC_WCD_CPE
