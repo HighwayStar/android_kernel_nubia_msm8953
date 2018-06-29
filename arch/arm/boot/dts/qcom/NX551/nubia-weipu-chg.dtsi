@@ -1,0 +1,64 @@
+
+/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&soc {
+	weipu-charger {
+		compatible = "weipu,charger";
+		weipu-en-gpio = <&tlmm 90  0x00>;
+		weipu-st-gpio = <&tlmm 141 0x00>;
+		weipu,batt-cool-temp = <100>;
+		weipu,batt-warm-temp = <430>;
+		weipu,chg-limit-temp = <400>;
+		weipu,batt-cv-soc = <85>;
+		weipu,usb-hot-temp = <700>;
+		weipu,max-chg-ma = <5100>;
+		
+		qcom,usbin-vadc = <&pmi8950_vadc>;
+		usb-ntc-supply = <&pm8953_l16>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&weipu_st_active &weipu_en_active>;
+	};
+
+};
+
+&tlmm {
+	weipu-gpio-config {
+        weipu_st_active: weipu_st_active {
+			mux {
+				pins = "gpio141";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio141";
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+
+    	weipu_en_active: weipu_en_active {
+			mux {
+				pins = "gpio90";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio90";
+				drive-strength = <2>;
+				bias-disable;
+			};
+		};
+	};
+};
+
