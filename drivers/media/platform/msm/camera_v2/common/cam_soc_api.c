@@ -351,9 +351,42 @@ int msm_camera_clk_enable(struct device *dev,
 	int rc = 0;
 	long clk_rate;
 
-	if (enable) {
-		for (i = 0; i < num_clk; i++) {
-			CDBG("enable %s\n", clk_info[i].clk_name);
+      /*ZTEMT: fengxun add for set PMIC GPIO1--------Start*/
+      #ifdef CONFIG_AL3200
+      struct clk* clk_c;
+      #endif
+      /*ZTEMT: fengxun add for set PMIC GPIO1--------End*/
+
+      if (enable) {
+          for (i = 0; i < num_clk; i++) {
+              CDBG("enable clk_name=%s  clk_rate=%ld\n", clk_info[i].clk_name,clk_info[i].clk_rate);
+
+                     /*ZTEMT: fengxun add for set PMIC GPIO1--------Start*/
+                     #ifdef CONFIG_AL3200
+                     if (!strncmp(clk_info[i].clk_name, "al3200_clk", 6))
+                     {
+                         CDBG("[FX]clk_prepare_enable E\n");
+
+                         clk_c = devm_clk_get(dev,"al3200_clk");
+                         CDBG("[FX]clk_c = %p\n",clk_c);
+
+                         rc = clk_set_rate(clk_c,19200000);
+                         if (rc < 0) {
+                             pr_err("[FX]clk_set_rate failed\n");
+                         }
+                         CDBG("[FX]clk_get_rate %ld\n",clk_get_rate(clk_c));
+
+                         rc = clk_prepare_enable(clk_c);
+                         if (rc < 0) {
+                             pr_err("[FX]clk_prepare_enable failed\n");
+                         }
+
+                         CDBG("[FX]clk_prepare_enable X\n");
+                         break;
+                     }
+                     #endif
+                     /*ZTEMT: fengxun add for set PMIC GPIO1--------End*/
+
 			if (clk_info[i].clk_rate > 0) {
 				clk_rate = clk_round_rate(clk_ptr[i],
 					clk_info[i].clk_rate);
