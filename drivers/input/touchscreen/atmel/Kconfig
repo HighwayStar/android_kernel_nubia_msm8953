@@ -1,0 +1,127 @@
+#
+# Atmel mXT I2C Touchscreen driver
+#
+
+# nubia change note:
+# all the config are controled by ZTEMT_TOUCHSCREEN_ATMEL_MXTS, if these one is y, all sub config will be selected
+# if you want to add the config seprately, delete the select in this file and add them in defconfig file
+
+menuconfig ZTEMT_TOUCHSCREEN_ATMEL_MXTS
+	bool "ZTEMT ATMEL touchscreen"
+	default n
+	select TOUCHSCREEN_ATMEL_MXTS
+	help
+	  Say Y here if you have a ATMEL touchscreen connected
+	  to your system.
+
+	  If unsure, say N.
+
+if ZTEMT_TOUCHSCREEN_ATMEL_MXTS
+
+config TOUCHSCREEN_ATMEL_MXTS
+	tristate "ATMEL Touthscreen"
+	depends on ZTEMT_TOUCHSCREEN_ATMEL_MXTS
+	select MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  Enable atmel touchscreen, which will selcted when ztemt atmel touch connected
+
+config ZTEMT_TOUCHSCREEN_ATMEL_MXTS_DEBUG
+	bool "Enable debug output"
+	depends on ZTEMT_TOUCHSCREEN_ATMEL_MXTS
+	default n
+	select MXT_DEBUG_ENABLE
+	help
+	  Enable Debug output for Cypress TrueTouch(tm)
+	  Say Y here to enable debug output.
+	  Enable ZTEMT output for Cypress TrueTouch(tm)
+
+config ZTEMT_TOUCHSCREEN_ATMEL_MXTS_C_ZONE
+	bool "ATMEL Touthscreen C ZONE"
+	depends on ZTEMT_TOUCHSCREEN_ATMEL_MXTS
+	default n
+
+endif
+
+
+config MXT_DEBUG_ENABLE
+	bool "Debug message"
+	depends on TOUCHSCREEN_ATMEL_MXTS
+	default n
+	help
+	  This is the plugin manger
+
+	  Select here if you have a debug message
+
+config MXT_PLUGIN_SUPPORT
+	bool "Plugin manager"
+	depends on TOUCHSCREEN_ATMEL_MXTS
+	default n
+	select MXT_PLIGIN_CAL
+	select MXT_PLIGIN_AC
+	select MXT_PLIGIN_PI
+	select MXT_PLIGIN_MISC
+	select MXT_PLIGIN_CLIP
+	select MXT_PLIGIN_WDG
+	help
+	  This is the plugin manger
+
+	  Select here if you have a this plugin
+
+if MXT_PLUGIN_SUPPORT
+
+config MXT_PLIGIN_CAL
+	bool "Calibraion recovery support - (cal)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the calibraion plugin
+
+	  Select here if you have a this plugin
+
+config MXT_PLIGIN_AC
+	bool "Charger detect support - (ac)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the charger plugin
+
+	  Select here if you have a this plugin
+
+config MXT_PLIGIN_PI
+	bool "Alternative config support - (pi)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the alternative plugin
+
+	  Select here if you have a this plugin
+
+config MXT_PLIGIN_MISC
+	bool "Miscellaneous feature support - (misc)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the miscellaneous plugin
+
+	  Select here if you have a this plugin
+
+config MXT_PLIGIN_CLIP
+	bool "clip feature support - (clip)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the clip plugin
+
+	  Select here if you have a this plugin
+
+config MXT_PLIGIN_WDG
+	bool "Watch dog support - (wdg)"
+	depends on MXT_PLUGIN_SUPPORT
+	default n
+	help
+	  This is the watch dog plugin
+
+	  Select here if you have a this plugin
+endif
+

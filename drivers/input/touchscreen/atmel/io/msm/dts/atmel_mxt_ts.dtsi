@@ -1,0 +1,64 @@
+&i2c_1 {
+	atmel_mxt_ts@4a {
+		compatible = "atmel,atmel_mxt_ts";
+		reg = <0x4a>;
+		interrupt-parent = <&msmgpio>;
+		interrupts = <84 0x2008>;
+		gpios = <&msmgpio 84 0>,        /* IRQ */
+			<&msmgpio 97 0>;        /* RESET */
+		touch_vdd-supply = <&pma8084_s4>;
+		touch_avdd-supply = <&pma8084_l19>;
+		pinctrl-names = "default", "active";
+		pinctrl-0 = <&touch_irq_default &touch_reset_default>;
+		pinctrl-1 = <&touch_irq_active &touch_reset_active>;
+		common-vdd-supply = <0>;
+		suspend-power-off = <0>;
+
+		keyevent_modes {
+			keyevent-mode = <&key_button &key_gesture>;
+		};
+		key_button: touch_keyevent{
+			list = "T15@0=139,1=172,2=158;";
+		};
+		key_gesture: gesture_keyevent{
+			list = "T81@0=143;T93@0=61;T115@0=61,1=62;T116$v=64,o=65";
+		};
+	};
+}
+
+&soc {
+	tlmm_pinmux: pinctrl@fd510000 {
+
+		pinctrl-names = "default";
+		touch_irq {
+			qcom,pins = <&gp 84>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "touch_irq";
+			touch_irq_default: default {
+				bias-pull-down;
+				drive-strength = <6>;
+			};
+			touch_irq_active: active {
+				bias-pull-up;
+				drive-strength = <6>;
+			};
+		};
+
+		touch_reset {
+			qcom,pins = <&gp 97>;
+			qcom,num-grp-pins = <1>;
+			qcom,pin-func = <0>;
+			label = "touch_reset";
+			touch_reset_default: default {
+				bias-disable;
+				output-low;
+				drive-strength = <6>;
+			};
+			touch_reset_active: active {
+				bias-pull-up;
+				drive-strength = <6>;
+			};
+		};
+	};
+};
