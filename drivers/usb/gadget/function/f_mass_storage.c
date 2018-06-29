@@ -3149,7 +3149,11 @@ int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
 	if (common->luns[id])
 		return -EBUSY;
 
+#ifdef CONFIG_ZTEMT_USB
+	if (!cfg->filename && !cfg->removable && !cfg->cdrom) {
+#else
 	if (!cfg->filename && !cfg->removable) {
+#endif
 		pr_err("no file given for LUN%d\n", id);
 		return -EINVAL;
 	}
@@ -3371,7 +3375,11 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 					  fsg->common->can_stall);
 		if (ret)
 			return ret;
+#ifdef CONFIG_ZTEMT_USB
+		fsg_common_set_inquiry_string(fsg->common, "nubia", "Android");
+#else
 		fsg_common_set_inquiry_string(fsg->common, NULL, NULL);
+#endif
 		ret = fsg_common_run_thread(fsg->common);
 		if (ret)
 			return ret;

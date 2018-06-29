@@ -84,3 +84,8 @@ config USB_OTG_FSM
 	  Implements OTG Finite State Machine as specified in On-The-Go
 	  and Embedded Host Supplement to the USB Revision 2.0 Specification.
 
+config NUBIA_LINK_PM
+        bool "nubia link PM"
+        default n
+        help
+          some USB3.0 otg disks works abnormally when Link PM is enabled
