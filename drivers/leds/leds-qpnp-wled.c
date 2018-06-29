@@ -44,7 +44,9 @@
 #define QPNP_WLED_SOFTSTART_RAMP_DLY(b) (b + 0x53)
 #define QPNP_WLED_VLOOP_COMP_RES_REG(b)	(b + 0x55)
 #define QPNP_WLED_VLOOP_COMP_GM_REG(b)	(b + 0x56)
+#define QPNP_WLED_EN_PSM_REG(b)	(b + 0x5A)
 #define QPNP_WLED_PSM_CTRL_REG(b)	(b + 0x5B)
+#define QPNP_WLED_PFM_CTRL_REG(b)	(b + 0x5D)
 #define QPNP_WLED_SC_PRO_REG(b)		(b + 0x5E)
 #define QPNP_WLED_CTRL_SPARE_REG(b)	(b + 0xDF)
 #define QPNP_WLED_TEST1_REG(b)		(b + 0xE2)
@@ -188,6 +190,7 @@
 
 #define QPNP_WLED_MAX_STRINGS		4
 #define WLED_MAX_LEVEL_4095		4095
+#define WLED_6p25_LEVEL_256		256
 #define QPNP_WLED_RAMP_DLY_MS		20
 #define QPNP_WLED_TRIGGER_NONE		"none"
 #define QPNP_WLED_STR_SIZE		20
@@ -310,6 +313,7 @@ struct qpnp_wled {
 	u16 ilim_ma;
 	u16 boost_duty_ns;
 	u16 fs_curr_ua;
+	u16 fs_curr_ua_temp;//ZTEMT: added by nubia camera for front camera flash
 	u16 ramp_ms;
 	u16 ramp_step;
 	u16 cons_sync_write_delay_us;
@@ -321,7 +325,10 @@ struct qpnp_wled {
 	bool disp_type_amoled;
 	bool en_ext_pfet_sc_pro;
 	bool prev_state;
+	int pfm_enabled;
 };
+
+extern int get_camera_lcd_bkl_wled(void);//ZTEMT: added by nubia camera for front camera flash
 
 /* helper to read a pmic register */
 static int qpnp_wled_read_reg(struct qpnp_wled *wled, u8 *data, u16 addr)
@@ -414,6 +421,12 @@ static int qpnp_wled_set_level(struct qpnp_wled *wled, int level)
 {
 	int i, rc;
 	u8 reg;
+
+	reg = 0x00;
+	rc = qpnp_wled_write_reg(wled, &reg,
+		QPNP_WLED_EN_PSM_REG(wled->ctrl_base));
+	if (rc < 0)
+		return rc;
 
 	/* set brightness registers */
 	for (i = 0; i < wled->num_strings; i++) {
@@ -792,16 +805,63 @@ static struct device_attribute qpnp_wled_attrs[] = {
 			qpnp_wled_ramp_step_store),
 };
 
+//ZTEMT: added by nubia camera for front camera flash start
+int qpnp_camera_lcd_wled_config(struct qpnp_wled *wled, int enable)
+{
+	int rc, i, temp;
+	u8 reg = 0;
+	for (i = 0; i < wled->num_strings; i++) {
+        if (wled->strings[i] >= QPNP_WLED_MAX_STRINGS) {
+            dev_err(&wled->spmi->dev, "Invalid string number\n");
+		return -EINVAL;
+        }
+	/* FULL SCALE CURRENT */
+	if (wled->fs_curr_ua > QPNP_WLED_FS_CURR_MAX_UA)
+		wled->fs_curr_ua = QPNP_WLED_FS_CURR_MAX_UA;
+
+	rc = qpnp_wled_read_reg(wled, &reg,
+			QPNP_WLED_FS_CURR_REG(wled->sink_base,
+					wled->strings[i]));
+	if (rc < 0)
+		return rc;
+	reg &= QPNP_WLED_FS_CURR_MASK;
+	if (enable) {
+		wled->fs_curr_ua = QPNP_WLED_FS_CURR_MAX_UA;
+	} else {
+		wled->fs_curr_ua = wled->fs_curr_ua_temp;
+	}
+	temp = wled->fs_curr_ua / QPNP_WLED_FS_CURR_STEP_UA;
+	reg |= temp;
+	rc = qpnp_wled_write_reg(wled, &reg,
+			QPNP_WLED_FS_CURR_REG(wled->sink_base,
+					wled->strings[i]));
+		if (rc)
+			return rc;
+    }
+	return rc;
+}
+//ZTEMT: added by nubia camera for front camera flash end
+
 /* worker for setting wled brightness */
 static void qpnp_wled_work(struct work_struct *work)
 {
 	struct qpnp_wled *wled;
 	int level, rc;
+	static int camer_lcd_bkl_wled = 0; //ZTEMT: added by nubia camera for front camera flash
 
 	wled = container_of(work, struct qpnp_wled, work);
 	mutex_lock(&wled->cdev.led_access);
 
 	level = wled->cdev.brightness;
+	//ZTEMT: added by nubia camera for front camera flash start
+	if (get_camera_lcd_bkl_wled()) {
+		camer_lcd_bkl_wled = 1;
+		qpnp_camera_lcd_wled_config(wled, 1);
+	} else if (camer_lcd_bkl_wled == 1) {
+		camer_lcd_bkl_wled = 0;
+		qpnp_camera_lcd_wled_config(wled, 0);
+	}
+	//ZTEMT: added by nubia camera for front camera flash end
 
 	if (level) {
 		rc = qpnp_wled_set_level(wled, level);
@@ -1714,6 +1774,7 @@ static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 			"qcom,fs-curr-ua", &temp_val);
 	if (!rc) {
 		wled->fs_curr_ua = temp_val;
+		wled->fs_curr_ua_temp = temp_val;//ZTEMT: added by nubia camera for front camera flash
 	} else if (rc != -EINVAL) {
 		dev_err(&spmi->dev, "Unable to read full scale current\n");
 		return rc;
@@ -1756,6 +1817,14 @@ static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 
 	wled->en_ext_pfet_sc_pro = of_property_read_bool(spmi->dev.of_node,
 					"qcom,en-ext-pfet-sc-pro");
+
+/*** ZTEMT start,for OLED without wled ***/
+	if ( of_property_read_bool(spmi->dev.of_node,"qcom,wled-disable")){
+		u8 reg = 0x00;
+		rc = qpnp_wled_write_reg(wled, &reg, QPNP_WLED_EN_REG(wled->ctrl_base));//0xd846
+		dev_err(&spmi->dev, "nubia trying to disable wled, ret=%d\n", rc);
+	}
+/*** ZTEMT end ***/
 
 	return 0;
 }
