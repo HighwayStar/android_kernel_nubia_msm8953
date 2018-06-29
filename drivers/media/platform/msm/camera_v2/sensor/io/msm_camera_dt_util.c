@@ -25,6 +25,12 @@
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
+#ifdef CONFIG_AL3200
+extern int imx258_main_state;
+extern int imx258_aux_state;
+extern int front_sensor_s5k3p3;
+#endif
+
 int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 	int num_vreg, struct msm_sensor_power_setting *power_setting,
 	uint16_t power_setting_size)
@@ -1510,7 +1516,6 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 	int rc = 0, index = 0, no_gpio = 0, ret = 0;
 	struct msm_sensor_power_setting *power_setting = NULL;
 
-	CDBG("%s:%d\n", __func__, __LINE__);
 	if (!ctrl || !sensor_i2c_client) {
 		pr_err("failed ctrl %pK sensor_i2c_client %pK\n", ctrl,
 			sensor_i2c_client);
@@ -1540,9 +1545,8 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 				__func__, __LINE__);
 	}
 	for (index = 0; index < ctrl->power_setting_size; index++) {
-		CDBG("%s index %d\n", __func__, index);
 		power_setting = &ctrl->power_setting[index];
-		CDBG("%s type %d\n", __func__, power_setting->seq_type);
+		CDBG("%s index %d  type=%d\n", __func__, index,power_setting->seq_type);
 		switch (power_setting->seq_type) {
 		case SENSOR_CLK:
 			if (power_setting->seq_val >= ctrl->clk_info_size) {
@@ -1554,6 +1558,7 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			if (power_setting->config_val)
 				ctrl->clk_info[power_setting->seq_val].
 					clk_rate = power_setting->config_val;
+			CDBG("SENSOR_CLK  %s  %d  clk_rate=%ld\n",__func__,__LINE__,power_setting->config_val);
 			rc = msm_camera_clk_enable(ctrl->dev,
 				ctrl->clk_info, ctrl->clk_ptr,
 				ctrl->clk_info_size, true);
@@ -1577,9 +1582,9 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			if (!ctrl->gpio_conf->gpio_num_info->valid
 				[power_setting->seq_val])
 				continue;
-			CDBG("%s:%d gpio set val %d\n", __func__, __LINE__,
-				ctrl->gpio_conf->gpio_num_info->gpio_num
-				[power_setting->seq_val]);
+			CDBG("SENSOR_GPIO  %s:%d gpio set seq_val %d   config_val=%ld\n", __func__, __LINE__,
+				ctrl->gpio_conf->gpio_num_info->gpio_num[power_setting->seq_val],
+				power_setting->config_val);
 			gpio_set_value_cansleep(
 				ctrl->gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val],
@@ -1595,13 +1600,15 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 					SENSOR_GPIO_MAX);
 				goto power_up_failed;
 			}
-			if (power_setting->seq_val < ctrl->num_vreg)
+			if (power_setting->seq_val < ctrl->num_vreg){
+				CDBG("SENSOR_VREG  %s  %d  \n",__func__,__LINE__);
 				msm_camera_config_single_vreg(ctrl->dev,
 					&ctrl->cam_vreg
 					[power_setting->seq_val],
 					(struct regulator **)
 					&power_setting->data[0],
 					1);
+			}
 			else
 				pr_err("%s: %d usr_idx:%d dts_idx:%d\n",
 					__func__, __LINE__,
@@ -1634,6 +1641,7 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 	}
 
 	if (device_type == MSM_CAMERA_PLATFORM_DEVICE) {
+		CDBG("%s  %d  call  MSM_CCI_INIT \n",__func__,__LINE__);
 		rc = sensor_i2c_client->i2c_func_tbl->i2c_util(
 			sensor_i2c_client, MSM_CCI_INIT);
 		if (rc < 0) {
@@ -1641,7 +1649,7 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			goto power_up_failed;
 		}
 	}
-	CDBG("%s exit\n", __func__);
+	pr_err("X %s \n", __func__);
 	return 0;
 power_up_failed:
 	pr_err("%s:%d failed\n", __func__, __LINE__);
@@ -1735,7 +1743,7 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 	struct msm_sensor_power_setting *pd = NULL;
 	struct msm_sensor_power_setting *ps;
 
-	CDBG("%s:%d\n", __func__, __LINE__);
+	CDBG("E %s:%d\n", __func__, __LINE__);
 	if (!ctrl || !sensor_i2c_client) {
 		pr_err("failed ctrl %pK sensor_i2c_client %pK\n", ctrl,
 			sensor_i2c_client);
@@ -1767,10 +1775,24 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 			if (!ctrl->gpio_conf->gpio_num_info->valid
 				[pd->seq_val])
 				continue;
-			gpio_set_value_cansleep(
-				ctrl->gpio_conf->gpio_num_info->gpio_num
-				[pd->seq_val],
-				(int) pd->config_val);
+#ifdef CONFIG_AL3200
+			if((imx258_main_state == 1)&&(imx258_aux_state == 1)&&(pd->seq_val == SENSOR_GPIO_VIO)){
+				pr_err("%s dual camera power on break\n", __func__);
+				break;
+			}
+                        else if((imx258_main_state == 1)&&(front_sensor_s5k3p3 == 1)&&(pd->seq_val == SENSOR_GPIO_VIO))
+			{
+                             pr_err("%s main camera and front camera power on break\n", __func__);
+			     break;
+                        }else{
+#endif
+				gpio_set_value_cansleep(
+					ctrl->gpio_conf->gpio_num_info->gpio_num
+					[pd->seq_val],
+					(int) pd->config_val);
+#ifdef CONFIG_AL3200
+			}
+#endif
 			break;
 		case SENSOR_VREG:
 			if (pd->seq_val == INVALID_VREG)
@@ -1800,11 +1822,25 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 			} else
 				pr_err("%s error in power up/down seq data\n",
 								__func__);
-			ret = msm_cam_sensor_handle_reg_gpio(pd->seq_val,
-				ctrl->gpio_conf, GPIOF_OUT_INIT_LOW);
-			if (ret < 0)
-				pr_err("ERR:%s Error while disabling VREG GPIO\n",
-					__func__);
+#ifdef CONFIG_AL3200
+			if((imx258_main_state == 1)&&(imx258_aux_state == 1)&&(pd->seq_val == CAM_VIO)){
+				pr_err("%s dual camera power on break\n", __func__);
+				break;
+			}
+                        else if((imx258_main_state == 1)&&(front_sensor_s5k3p3 == 1)&&(pd->seq_val == CAM_VIO))
+			{
+                             pr_err("%s main camera and front camera power on break\n", __func__);
+			     break;
+                        }else{
+#endif
+				ret = msm_cam_sensor_handle_reg_gpio(pd->seq_val,
+					ctrl->gpio_conf, GPIOF_OUT_INIT_LOW);
+				if (ret < 0)
+					pr_err("ERR:%s Error while disabling VREG GPIO\n",
+						__func__);
+#ifdef CONFIG_AL3200
+			}
+#endif
 			break;
 		case SENSOR_I2C_MUX:
 			if (ctrl->i2c_conf && ctrl->i2c_conf->use_i2c_mux)
@@ -1834,7 +1870,7 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 	msm_camera_request_gpio_table(
 		ctrl->gpio_conf->cam_gpio_req_tbl,
 		ctrl->gpio_conf->cam_gpio_req_tbl_size, 0);
-	CDBG("%s exit\n", __func__);
+	CDBG("X %s:%d\n", __func__, __LINE__);
 	return 0;
 }
 
