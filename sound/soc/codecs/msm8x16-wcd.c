@@ -3423,12 +3423,20 @@ static int msm8x16_wcd_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 			snd_soc_update_bits(codec, dmic_clk_reg,
 					dmic_clk_en, dmic_clk_en);
 		}
+		#ifdef CONFIG_ZTEMT_AUDIO_DIGITAL_MIC
+		snd_soc_update_bits(codec,
+				MSM8X16_WCD_A_CDC_TX1_DMIC_CTL, 0x07, 0x01);
+		snd_soc_update_bits(codec,
+				MSM8X16_WCD_A_CDC_TX2_DMIC_CTL, 0x07, 0x01);
+		#else
 		if (dmic == 1)
-			snd_soc_update_bits(codec,
-			MSM8X16_WCD_A_CDC_TX1_DMIC_CTL, 0x07, 0x01);
+				snd_soc_update_bits(codec,
+							MSM8X16_WCD_A_CDC_TX1_DMIC_CTL, 0x07, 0x01);
 		if (dmic == 2)
-			snd_soc_update_bits(codec,
-			MSM8X16_WCD_A_CDC_TX2_DMIC_CTL, 0x07, 0x01);
+				snd_soc_update_bits(codec,
+							MSM8X16_WCD_A_CDC_TX2_DMIC_CTL, 0x07, 0x01);
+		#endif
+
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		(*dmic_clk_cnt)--;
@@ -4241,6 +4249,9 @@ static int msm8x16_wcd_lo_dac_event(struct snd_soc_dapm_widget *w,
 			MSM8X16_WCD_A_ANALOG_RX_LO_DAC_CTL, 0x08, 0x08);
 		snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_RX_LO_DAC_CTL, 0x40, 0x40);
+#ifdef CONFIG_ZTEMT_AUDIO
+		msleep(5);
+#endif
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		snd_soc_update_bits(codec,
@@ -4457,7 +4468,11 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"SPK DAC", NULL, "VDD_SPKDRV"},
 
 	/* lineout */
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+	{"EXT SPK PA", NULL, "LINEOUT PA"},
+#else
 	{"LINEOUT", NULL, "LINEOUT PA"},
+#endif
 	{"LINEOUT PA", NULL, "SPK_RX_BIAS"},
 	{"LINEOUT PA", NULL, "LINE_OUT"},
 	{"LINE_OUT", "Switch", "LINEOUT DAC"},
@@ -5052,7 +5067,11 @@ static const struct snd_soc_dapm_widget msm8x16_wcd_dapm_widgets[] = {
 
 	SND_SOC_DAPM_SUPPLY("INT_LDO_H", SND_SOC_NOPM, 1, 0, NULL, 0),
 
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+	SND_SOC_DAPM_SPK("EXT SPK PA", msm8x16_wcd_codec_enable_spk_ext_pa),
+#else
 	SND_SOC_DAPM_SPK("Ext Spk", msm8x16_wcd_codec_enable_spk_ext_pa),
+#endif
 
 	SND_SOC_DAPM_OUTPUT("HEADPHONE"),
 	SND_SOC_DAPM_PGA_E("HPHL PA", MSM8X16_WCD_A_ANALOG_RX_HPH_CNP_EN,
