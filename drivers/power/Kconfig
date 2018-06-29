@@ -14,6 +14,7 @@ config POWER_SUPPLY_DEBUG
 	  Say Y here to enable debugging messages for power supply class
 	  and drivers.
 
+
 config PDA_POWER
 	tristate "Generic PDA/phone power driver"
 	depends on !S390
@@ -636,6 +637,81 @@ config MSM_BCL_PERIPHERAL_CTL
 	  provides routines to configure and monitor the BCL
 	  PMIC peripheral.
 
+################ZTEMT charger
+menu "ZTEMT charger and battery and fuel guage"
+
+config ZTEMT_CHARGER
+	bool "ZTEMT For MSMxxxx Platfrom Charge"
+	default n
+	help
+	  ZTEMT For MSMxxxx Platfrom Charge
+config ZTEMT_FUEL_GAUGE
+	bool "ZTEMT For MSMxxxx Platfrom Fuel Gauge"
+	default n
+	help
+	  ZTEMT For MSMxxxx Platfrom fuel gauge
+config NUBIA_WEIPU_CHARGER
+	bool "ZTEMT For weipu  Charge"
+	default n
+	help
+	  ZTEMT For weipu  Charge
+endmenu
+################ztemt battery config
+
+config BATTERY_BQ27520
+	tristate "BQ27520 battery driver"
+	depends on I2C || I2C=n
+	help
+	  Say Y here to enable support for batteries with BQ27520 (I2C/HDQ) chips.
+
+config EXTERNAL_FUEL_GAUGE
+	tristate "external fuel gauge support driver"
+	depends on BATTERY_BQ27520 || I2C
+	help
+	  Say Y here to enable support for batteries with BQ27520 (I2C/HDQ) chips.
+
+################ztemt hw_version config start################
+config ZTEMT_HW_VERSION
+	bool "ZTEMT HW VERSION"
+	default n
+	help
+	  ZTEMT HW VERSION
+
+config ZTEMT_HW_VERSION_DEBUG
+	bool "ZTEMT HW VERSION DEBUG"
+	depends on ZTEMT_HW_VERSION
+	default n
+	help
+	  ZTEMT HW VERSION DEBUG
+
+config ZTEMT_HW_VER_BY_ADC
+	bool "ZTEMT HW VER BY ADC"
+	depends on ZTEMT_HW_VERSION
+	default n
+	help
+	  ZTEMT HW VER BY ADC
+
+config ZTEMT_HW_CONFIG_BY_GPIO
+	bool "ZTEMT HW CONFIG BY GPIO"
+	depends on ZTEMT_HW_VERSION
+	default n
+	help
+	  ZTEMT HW CONFIG BY GPIO
+
+config ZTEMT_ANT_VER_BY_GPIO
+	bool "ZTEMT ANT VER BY GPIO"
+	depends on ZTEMT_HW_VERSION
+	default n
+	help
+	  ztemt antenna version by gpio 
+
+config ZTEMT_HW_CPU_SERIAL_NUM
+	bool "ZTEMT HW CPU SERIAL NUM"
+	depends on ZTEMT_HW_VERSION
+	default y
+	help
+	  ZTEMT HW CPU SERIAL NUM
+################ztemt hw_version config end#################
 source "drivers/power/reset/Kconfig"
 
 endif # POWER_SUPPLY
