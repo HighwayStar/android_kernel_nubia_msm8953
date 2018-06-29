@@ -739,8 +739,8 @@ int msm_camera_request_gpio_table(struct gpio *gpio_tbl, uint8_t size,
 		return -EINVAL;
 	}
 	for (i = 0; i < size; i++) {
-		CDBG("%s:%d i %d, gpio %d dir %ld\n", __func__, __LINE__, i,
-			gpio_tbl[i].gpio, gpio_tbl[i].flags);
+		CDBG("%s:%d i %d, gpio %d dir %ld label=%s\n", __func__, __LINE__, i,
+			gpio_tbl[i].gpio, gpio_tbl[i].flags,gpio_tbl[i].label);
 	}
 	if (gpio_en) {
 		for (i = 0; i < size; i++) {

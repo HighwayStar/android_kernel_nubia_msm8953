@@ -611,6 +611,87 @@ static int eeprom_config_read_cal_data(struct msm_eeprom_ctrl_t *e_ctrl,
 	return rc;
 }
 
+//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- start
+static int write_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl, uint32_t size, uint8_t* buffer)
+{
+	int rc = 0;
+	uint32_t i = 0;
+	uint8_t *buffer_read = NULL;
+
+	if (!e_ctrl) {
+		pr_err("%s e_ctrl is NULL", __func__);
+		return -EINVAL;
+	}
+
+        msleep(50);//ZTEMT: li.bin223 add for improve write eeprom
+
+	for (i = 0x1695; i <= 0x175C; i++) {
+		rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+				&(e_ctrl->i2c_client),
+				i,
+				buffer[i],
+				1);
+		if ( rc < 0) {
+			pr_err("%s addr = 0x%x, data = 0x%X, rc =%d \n", __func__,i , buffer[i], rc);
+			break;
+		}
+		usleep_range(2000,2100);
+	}
+
+	if ( rc < 0) {
+		goto END;
+	}
+
+	for (i = 0x177E; i <= 0x1FFF; i++) {
+		rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+				&(e_ctrl->i2c_client),
+				i,
+				buffer[i],
+				1);
+		if ( rc < 0) {
+			pr_err("%s addr = 0x%x, data = 0x%X, rc =%d \n", __func__,i , buffer[i], rc);
+			break;
+		}
+		usleep_range(2000,2100);
+	}
+
+	if ( rc < 0) {
+		goto END;
+	}
+
+	//check data
+	buffer_read = kzalloc(sizeof(uint8_t) * size, GFP_KERNEL);
+	if (!buffer_read) {
+		pr_err("%s:%d kzalloc failed\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read_seq(
+				&(e_ctrl->i2c_client),
+				0x0,
+				buffer_read,
+				size);
+
+	if ( rc < 0) {
+		kfree(buffer_read);
+		goto END;
+	}
+
+	for (i = 0; i < size ; i++) {
+		if (buffer[i] != buffer_read[i]) {
+			pr_err("%s data error, addr=0x%X, write data =0x%X, read data=0x%X",
+				__func__, i, buffer[i], buffer_read[i]);
+			rc = -EINVAL;
+			break;
+		}
+	}
+
+	kfree(buffer_read);
+END:
+	return rc;
+}
+//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- end
+
 static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 	void __user *argp)
 {
@@ -618,6 +699,10 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 		(struct msm_eeprom_cfg_data *)argp;
 	int rc = 0;
 	size_t length = 0;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- start
+	uint8_t *buffer;
+	uint32_t size;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- end
 
 	CDBG("%s E\n", __func__);
 	switch (cdata->cfgtype) {
@@ -672,6 +757,31 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 				__func__, __LINE__);
 		}
 		break;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- start
+	case CFG_EEPROM_DO_CALIBRATION:
+		CDBG("%s E CFG_EEPROM_READ_CAL_DATA\n", __func__);
+		size = cdata->cfg.write_data.num_bytes;
+		buffer = kzalloc(size * (sizeof(uint8_t)), GFP_KERNEL);
+		if (!buffer) {
+		pr_err("%s:%d failed\n", __func__, __LINE__);
+			rc = -ENOMEM;
+			return rc;
+		}
+		if (copy_from_user(buffer, cdata->cfg.write_data.dbuffer ,size * sizeof(uint8_t))) {
+			pr_err("%s:%d failed\n", __func__, __LINE__);
+			kfree(buffer);
+			rc = -EFAULT;
+			return rc;
+		}
+		rc = write_eeprom_memory(e_ctrl, size, buffer);
+		if (rc < 0) {
+			pr_err("%s write eeprom failed",__func__);
+			kfree(buffer);
+			return rc;
+		}
+		kfree(buffer);
+		break;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- end
 	default:
 		break;
 	}
@@ -1476,6 +1586,37 @@ free_mem:
 	return rc;
 }
 
+//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- start
+static int write_eeprom_memory32(struct msm_eeprom_ctrl_t *e_ctrl, void __user *arg)
+{
+	int rc;
+	uint8_t *buffer;
+	uint32_t size;
+	struct msm_eeprom_cfg_data32 *cdata32 =
+		(struct msm_eeprom_cfg_data32 *) arg;
+
+	size = cdata32->cfg.write_data.num_bytes;
+
+	buffer = kzalloc(size * (sizeof(uint8_t)), GFP_KERNEL);
+	if (!buffer) {
+			pr_err("%s:%d failed\n", __func__, __LINE__);
+			rc = -ENOMEM;
+			return rc;
+	}
+	if (copy_from_user(buffer, (void *)compat_ptr(cdata32->cfg.write_data.dbuffer) ,size * sizeof(uint8_t))) {
+			pr_err("%s:%d failed\n", __func__, __LINE__);
+			kfree(buffer);
+			rc = -EFAULT;
+			return rc;
+	}
+
+	rc = write_eeprom_memory(e_ctrl, size , buffer);
+
+	kfree(buffer);
+	return rc;
+}
+//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- end
+
 static int msm_eeprom_config32(struct msm_eeprom_ctrl_t *e_ctrl,
 	void __user *argp)
 {
@@ -1519,6 +1660,7 @@ static int msm_eeprom_config32(struct msm_eeprom_ctrl_t *e_ctrl,
 			pr_err("%s:%d Eeprom already probed at kernel boot",
 				__func__, __LINE__);
 			rc = -EINVAL;
+			//rc = 0;//ZTEMT:wangdyeong modify for eeprom driver using dts
 			break;
 		}
 		if (e_ctrl->cal_data.num_data == 0) {
@@ -1531,6 +1673,16 @@ static int msm_eeprom_config32(struct msm_eeprom_ctrl_t *e_ctrl,
 				__func__, __LINE__);
 		}
 		break;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- start
+	case CFG_EEPROM_DO_CALIBRATION:
+		CDBG("%s E CFG_EEPROM_READ_CAL_DATA\n", __func__);
+		rc = write_eeprom_memory32(e_ctrl, argp);
+		if (rc < 0) {
+			pr_err("%s write eeprom failed",__func__);
+			return rc;
+		}
+		break;
+	//ZTEMT:zhouruoyu add for factory altek 3D calibration ----- end
 	default:
 		break;
 	}
@@ -1649,7 +1801,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 
 	rc = of_property_read_u32(of_node, "cell-index",
 		&pdev->id);
-	CDBG("cell-index %d, rc %d\n", pdev->id, rc);
+	pr_err("cell-index %d, rc %d\n", pdev->id, rc);
 	if (rc < 0) {
 		pr_err("failed rc %d\n", rc);
 		goto board_free;
@@ -1658,7 +1810,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 
 	rc = of_property_read_u32(of_node, "qcom,cci-master",
 		&e_ctrl->cci_master);
-	CDBG("qcom,cci-master %d, rc %d\n", e_ctrl->cci_master, rc);
+	pr_err("qcom,cci-master %d, rc %d\n", e_ctrl->cci_master, rc);
 	if (rc < 0) {
 		pr_err("%s failed rc %d\n", __func__, rc);
 		goto board_free;
@@ -1667,7 +1819,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 
 	rc = of_property_read_string(of_node, "qcom,eeprom-name",
 		&eb_info->eeprom_name);
-	CDBG("%s qcom,eeprom-name %s, rc %d\n", __func__,
+	pr_err("%s qcom,eeprom-name %s, rc %d\n", __func__,
 		eb_info->eeprom_name, rc);
 	if (rc < 0) {
 		pr_err("%s failed %d\n", __func__, __LINE__);
@@ -1701,7 +1853,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 			e_ctrl->i2c_freq_mode = 0;
 		}
 		eb_info->i2c_slaveaddr = temp;
-		CDBG("qcom,slave-addr = 0x%X\n", eb_info->i2c_slaveaddr);
+		pr_err("qcom,slave-addr = 0x%X\n", eb_info->i2c_slaveaddr);
 		eb_info->i2c_freq_mode = e_ctrl->i2c_freq_mode;
 		cci_client->i2c_freq_mode = e_ctrl->i2c_freq_mode;
 		cci_client->sid = eb_info->i2c_slaveaddr >> 1;

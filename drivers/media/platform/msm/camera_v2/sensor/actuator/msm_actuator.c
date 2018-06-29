@@ -586,18 +586,38 @@ static int32_t msm_actuator_move_focus(
 	int32_t num_steps = move_params->num_steps;
 	struct msm_camera_i2c_reg_setting reg_setting;
 
-	CDBG("called, dir %d, num_steps %d\n", dir, num_steps);
+    /*Allocate memory for damping parameters of all regions*/
+    ringing_params_kernel = kmalloc(
+        sizeof(struct damping_params_t)*(a_ctrl->region_size),
+        GFP_KERNEL);
+    if (!ringing_params_kernel) {
+        pr_err("kmalloc for damping parameters failed\n");
+        return -EFAULT;
+    }
 
-	if (dest_step_pos == a_ctrl->curr_step_pos)
-		return rc;
+    preempt_disable();//jixd add for high priority
+    CDBG("called, dir %d, num_steps %d\n", dir, num_steps);
+
+    if (a_ctrl->step_position_table[dest_step_pos] == a_ctrl->step_position_table[a_ctrl->curr_step_pos]){
+        pr_err("%s  %d dest_step_pos:%d curr_step_pos::%d  a_ctrl->step_position_table[dest_step_pos]:%d",__func__,__LINE__,dest_step_pos,a_ctrl->curr_step_pos,a_ctrl->step_position_table[dest_step_pos]);
+        a_ctrl->curr_step_pos = dest_step_pos;
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
+        return rc;
+    }
+    //ZTEMT:wangdeyong modify for af_write_fail    --end
 
 	if ((sign_dir > MSM_ACTUATOR_MOVE_SIGNED_NEAR) ||
 		(sign_dir < MSM_ACTUATOR_MOVE_SIGNED_FAR)) {
 		pr_err("Invalid sign_dir = %d\n", sign_dir);
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
 		return -EFAULT;
 	}
 	if ((dir > MOVE_FAR) || (dir < MOVE_NEAR)) {
 		pr_err("Invalid direction = %d\n", dir);
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
 		return -EFAULT;
 	}
 	if (a_ctrl->i2c_reg_tbl == NULL) {
@@ -607,29 +627,27 @@ static int32_t msm_actuator_move_focus(
 	if (dest_step_pos > a_ctrl->total_steps) {
 		pr_err("Step pos greater than total steps = %d\n",
 		dest_step_pos);
-		return -EFAULT;
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
+        return -EFAULT;
 	}
 	if ((a_ctrl->region_size <= 0) ||
 		(a_ctrl->region_size > MAX_ACTUATOR_REGION) ||
 		(!move_params->ringing_params)) {
 		pr_err("Invalid-region size = %d, ringing_params = %pK\n",
 		a_ctrl->region_size, move_params->ringing_params);
-		return -EFAULT;
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
+        return -EFAULT;
 	}
-	/*Allocate memory for damping parameters of all regions*/
-	ringing_params_kernel = kmalloc(
-		sizeof(struct damping_params_t)*(a_ctrl->region_size),
-		GFP_KERNEL);
-	if (!ringing_params_kernel) {
-		pr_err("kmalloc for damping parameters failed\n");
-		return -EFAULT;
-	}
+
 	if (copy_from_user(ringing_params_kernel,
 		&(move_params->ringing_params[0]),
 		(sizeof(struct damping_params_t))*(a_ctrl->region_size))) {
 		pr_err("copy_from_user failed\n");
 		/*Free the allocated memory for damping parameters*/
-		kfree(ringing_params_kernel);
+        preempt_enable();//jixd add for high priority
+        kfree(ringing_params_kernel);
 		return -EFAULT;
 	}
 	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
@@ -674,14 +692,16 @@ static int32_t msm_actuator_move_focus(
 		a_ctrl->curr_step_pos = target_step_pos;
 	}
 	/*Free the memory allocated for damping parameters*/
-	kfree(ringing_params_kernel);
 
 	move_params->curr_lens_pos = curr_lens_pos;
 	reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
 	reg_setting.data_type = a_ctrl->i2c_data_type;
 	reg_setting.size = a_ctrl->i2c_tbl_index;
+    preempt_enable();//jixd add for high priority
+
 	rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write_table_w_microdelay(
 		&a_ctrl->i2c_client, &reg_setting);
+    kfree(ringing_params_kernel);
 	if (rc < 0) {
 		pr_err("i2c write error:%d\n", rc);
 		return rc;
@@ -941,8 +961,25 @@ static int32_t msm_actuator_bivcm_init_step_table(
 				cur_code = step_index * code_per_step / qvalue;
 			else
 				cur_code = step_index * code_per_step;
-			cur_code = (set_info->af_tuning_params.initial_code +
+			//ZTEMT:modify by pangfl for bu64297 bivcm --- start
+			if((strncmp(a_ctrl->act_name,"bu64297_main",MAX_ACT_NAME_SIZE) == 0) ||
+				(strncmp(a_ctrl->act_name,"bu64297_aux",MAX_ACT_NAME_SIZE) == 0))
+			{
+				cur_code = (set_info->af_tuning_params.initial_code +
+					cur_code) & mask;
+			}
+			else
+			{
+				cur_code = (set_info->af_tuning_params.initial_code -
+					cur_code) & mask;
+			}
+/*
+			// ZTEMT: yangze modified for bivcm AF driver -----start
+			cur_code = (set_info->af_tuning_params.initial_code -
 				cur_code) & mask;
+			// ZTEMT: yangze modified for bivcm AF driver -----end
+*/
+			//ZTEMT:modify by pangfl for bu64297 bivcm --- end
 			if (cur_code < max_code_size)
 				a_ctrl->step_position_table[step_index] =
 					cur_code;
@@ -1170,18 +1207,19 @@ static int32_t msm_actuator_set_position(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_set_position_t *set_pos)
 {
-	int32_t rc = 0;
-	int32_t index;
-	uint16_t next_lens_position;
-	uint16_t delay;
-	uint32_t hw_params = 0;
-	struct msm_camera_i2c_reg_setting reg_setting;
-	CDBG("%s Enter %d\n", __func__, __LINE__);
-	if (set_pos->number_of_steps <= 0 ||
-		set_pos->number_of_steps > MAX_NUMBER_OF_STEPS) {
-		pr_err("num_steps out of range = %d\n",
-			set_pos->number_of_steps);
-		return -EFAULT;
+    int32_t rc = 0;
+    int32_t index;
+    uint16_t next_lens_position;
+    uint16_t delay;
+    uint32_t hw_params = 0;
+    int  step_boundary  = 0;//jixd 20160601 add for reset optimize
+    struct msm_camera_i2c_reg_setting reg_setting;
+    CDBG("%s Enter %d\n", __func__, __LINE__);
+    if (set_pos->number_of_steps <= 0 ||
+        set_pos->number_of_steps > MAX_NUMBER_OF_STEPS) {
+        pr_err("num_steps out of range = %d\n",
+            set_pos->number_of_steps);
+        return -EFAULT;
 	}
 
 	if (!a_ctrl || !a_ctrl->func_tbl ||
@@ -1195,42 +1233,61 @@ static int32_t msm_actuator_set_position(
 		pr_err("failed. Invalid actuator state.");
 		return -EFAULT;
 	}
+    pr_err("msm_actuator_set_position---act_name:%s\n", a_ctrl->act_name);
 
-	a_ctrl->i2c_tbl_index = 0;
-	hw_params = set_pos->hw_params;
-	for (index = 0; index < set_pos->number_of_steps; index++) {
-		next_lens_position = set_pos->pos[index];
-		delay = set_pos->delay[index];
-		a_ctrl->func_tbl->actuator_parse_i2c_params(a_ctrl,
-			next_lens_position, hw_params, delay);
+    if( (!strncmp(a_ctrl->act_name, "bu64297_nx549front", 32)) ||
+        (!strncmp(a_ctrl->act_name, "bu64297_nx549rear", 32)) )
+    {
+        hw_params = 0xFFFF;
+    }
+    a_ctrl->i2c_tbl_index = 0;
+    hw_params = set_pos->hw_params;
+    step_boundary = a_ctrl->region_params[0].step_bound[MOVE_NEAR];//jixd 20160601 add for reset optimize
+    for (index = 0; index < set_pos->number_of_steps; index++) {
+        //jixd 20160601 add for reset optimize ---start
+        if(set_pos->pos[index] < 0 || (set_pos->pos[index] > step_boundary -1))
+        {
+            break;
+        }
+        //jixd 20160601 add for reset optimize ---start
 
-		reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
-		reg_setting.size = a_ctrl->i2c_tbl_index;
-		reg_setting.data_type = a_ctrl->i2c_data_type;
+        next_lens_position = //set_pos->pos[index];
+            a_ctrl->step_position_table[set_pos->pos[index]];//jixd 20160601 add for reset optimize
+        delay = set_pos->delay[index];
+        a_ctrl->func_tbl->actuator_parse_i2c_params(a_ctrl,
+            next_lens_position, hw_params, delay);
 
-		rc = a_ctrl->i2c_client.i2c_func_tbl->
-			i2c_write_table_w_microdelay(
-			&a_ctrl->i2c_client, &reg_setting);
-		if (rc < 0) {
-			pr_err("%s Failed I2C write Line %d\n",
-				__func__, __LINE__);
-			return rc;
-		}
-		a_ctrl->i2c_tbl_index = 0;
-	}
-	CDBG("%s exit %d\n", __func__, __LINE__);
-	return rc;
+        reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
+        reg_setting.size = a_ctrl->i2c_tbl_index;
+        reg_setting.data_type = a_ctrl->i2c_data_type;
+
+        rc = a_ctrl->i2c_client.i2c_func_tbl->
+            i2c_write_table_w_microdelay(
+            &a_ctrl->i2c_client, &reg_setting);
+        if (rc < 0) {
+            pr_err("%s Failed I2C write Line %d\n",
+                __func__, __LINE__);
+            return rc;
+        }
+        a_ctrl->i2c_tbl_index = 0;
+        set_pos->dac_output = next_lens_position;//jixd 20160601 add for reset optimize
+    }
+    CDBG("%s exit %d\n", __func__, __LINE__);
+    return rc;
 }
 
 static int32_t msm_actuator_bivcm_set_position(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_set_position_t *set_pos)
 {
-	int32_t rc = 0;
+    int32_t rc = 0;
 	int32_t index;
 	uint16_t next_lens_position;
 	uint16_t delay;
 	uint32_t hw_params = 0;
+	int		step_boundary = 0;	//ZTEMT:added by pangfl
+
+	step_boundary = a_ctrl->region_params[0].step_bound[MOVE_NEAR];	//ZTEMT:added by pangfl
 	CDBG("%s Enter %d\n", __func__, __LINE__);
 	if (set_pos->number_of_steps <= 0 ||
 		set_pos->number_of_steps > MAX_NUMBER_OF_STEPS) {
@@ -1252,11 +1309,37 @@ static int32_t msm_actuator_bivcm_set_position(
 	a_ctrl->i2c_tbl_index = 0;
 	hw_params = set_pos->hw_params;
 	for (index = 0; index < set_pos->number_of_steps; index++) {
-		next_lens_position = set_pos->pos[index];
+	//ZTEMT:modify by pangfl for AF matching --- start
+		if(set_pos->is_altek_call == 1)
+		{
+			if(set_pos->pos[index] < 0)
+				set_pos->pos[index] = 0;
+			else if(set_pos->pos[index] > 1024)
+				set_pos->pos[index] = 1024;
+			next_lens_position = set_pos->pos[index];
+		}
+		else
+		{
+			if((strncmp(a_ctrl->act_name, "bu64297_main", 32) == 0) ||
+				(strncmp(a_ctrl->act_name, "bu64297_aux", 32) == 0))
+			{
+				if(set_pos->pos[index] <0)
+					set_pos->pos[index] = 0;
+				else if(set_pos->pos[index] > step_boundary - 1)
+					set_pos->pos[index] = step_boundary - 1;
+				next_lens_position = a_ctrl->step_position_table[set_pos->pos[index]];
+			}
+			else
+			{
+				next_lens_position = set_pos->pos[index];
+			}
+		}
+	//ZTEMT:modify by pangfl for AF matching --- end
 		delay = set_pos->delay[index];
 		rc = msm_actuator_bivcm_handle_i2c_ops(a_ctrl,
 		next_lens_position, hw_params, delay);
 		a_ctrl->i2c_tbl_index = 0;
+		set_pos->dac_output = next_lens_position;	//ZTEMT:added by pangfl
 	}
 	CDBG("%s exit %d\n", __func__, __LINE__);
 	return rc;
@@ -1458,6 +1541,16 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 			pr_err("init table failed %d\n", rc);
 		break;
 
+      // ZTEMT: fuyipeng add for manual AF -----start
+      case CFG_SET_ACTUATOR_NAME:
+            if (NULL != cdata->cfg.act_name)
+            {
+                memcpy(a_ctrl->act_name,cdata->cfg.act_name,sizeof(a_ctrl->act_name));
+                pr_err("CFG_SET_ACTUATOR_NAME ---act_name:%s \n", a_ctrl->act_name);
+            }
+
+            break;
+      // ZTEMT: fuyipeng add for manual AF -----end
 	case CFG_SET_DEFAULT_FOCUS:
 		if (a_ctrl->func_tbl &&
 			a_ctrl->func_tbl->actuator_set_default_focus)
@@ -1696,6 +1789,13 @@ static long msm_actuator_subdev_do_ioctl(
 
 			parg = &actuator_data;
 			break;
+            // ZTEMT: fengxun add for manual AF -----start
+            case  CFG_SET_ACTUATOR_NAME:
+                actuator_data.cfgtype = u32->cfgtype;
+                memcpy(actuator_data.cfg.act_name,u32->cfg.act_name,sizeof(u32->cfg.act_name));
+                parg = &actuator_data;
+                break;
+            // ZTEMT: fengxun add for manual AF -----end
 		case CFG_SET_DEFAULT_FOCUS:
 		case CFG_MOVE_FOCUS:
 			actuator_data.cfgtype = u32->cfgtype;
