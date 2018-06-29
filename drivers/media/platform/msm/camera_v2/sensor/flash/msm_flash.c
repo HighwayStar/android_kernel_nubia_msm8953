@@ -18,11 +18,16 @@
 #include "msm_flash.h"
 #include "msm_camera_dt_util.h"
 #include "msm_cci.h"
+#include "../../../../../../video/msm/mdss/mdss_fb.h" //ZTEMT: added by congshan for front camera flash
+
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
 DEFINE_MSM_MUTEX(msm_flash_mutex);
+
+int zte_camera_bkl_level;
+extern int primary_display_setbacklight(unsigned int level);
 
 static struct v4l2_file_operations msm_flash_v4l2_subdev_fops;
 static struct led_trigger *torch_trigger;
@@ -593,7 +598,7 @@ static int32_t msm_flash_low(
 	uint32_t curr = 0, max_current = 0;
 	int32_t i = 0;
 
-	CDBG("Enter\n");
+	CDBG("E  %s \n",__func__);
 	/* Turn off flash triggers */
 	for (i = 0; i < flash_ctrl->flash_num_sources; i++)
 		if (flash_ctrl->flash_trigger[i])
@@ -612,14 +617,14 @@ static int32_t msm_flash_low(
 				pr_debug("LED current clamped to %d\n",
 					curr);
 			}
-			CDBG("low_flash_current[%d] = %d", i, curr);
+			pr_err("low_flash_current[%d] = %d", i, curr);
 			led_trigger_event(flash_ctrl->torch_trigger[i],
 				curr);
 		}
 	}
 	if (flash_ctrl->switch_trigger)
 		led_trigger_event(flash_ctrl->switch_trigger, 1);
-	CDBG("Exit\n");
+	CDBG("X  %s \n",__func__);
 	return 0;
 }
 
@@ -630,7 +635,7 @@ static int32_t msm_flash_high(
 	int32_t curr = 0;
 	int32_t max_current = 0;
 	int32_t i = 0;
-
+	CDBG("E  %s \n",__func__);
 	/* Turn off torch triggers */
 	for (i = 0; i < flash_ctrl->torch_num_sources; i++)
 		if (flash_ctrl->torch_trigger[i])
@@ -649,13 +654,14 @@ static int32_t msm_flash_high(
 				pr_debug("LED flash_current[%d] clamped %d\n",
 					i, curr);
 			}
-			CDBG("high_flash_current[%d] = %d", i, curr);
+			pr_err("high_flash_current[%d] = %d", i, curr);
 			led_trigger_event(flash_ctrl->flash_trigger[i],
 				curr);
 		}
 	}
 	if (flash_ctrl->switch_trigger)
 		led_trigger_event(flash_ctrl->switch_trigger, 1);
+	CDBG("X  %s \n",__func__);
 	return 0;
 }
 
@@ -733,6 +739,12 @@ static int32_t msm_flash_config(struct msm_flash_ctrl_t *flash_ctrl,
 			CDBG(pr_fmt("Invalid state : %d\n"),
 				flash_ctrl->flash_state);
 		}
+		break;
+	case CFG_LCD_BKL_NORM:
+	case CFG_LCD_BKL_LOW:
+	case CFG_LCD_BKL_HIGH:
+	case CFG_LCD_BKL_SET:
+        rc = 0;
 		break;
 	default:
 		rc = -EFAULT;
@@ -1040,7 +1052,8 @@ static int32_t msm_flash_get_dt_data(struct device_node *of_node,
 	}
 
 	if (fctrl->flash_driver_type == FLASH_DRIVER_DEFAULT)
-		fctrl->flash_driver_type = FLASH_DRIVER_GPIO;
+		//fctrl->flash_driver_type = FLASH_DRIVER_GPIO;
+		fctrl->flash_driver_type = FLASH_DRIVER_PMIC;//ZTEMT: wangdeyong modify to contrl the strength of pmic flash
 	CDBG("%s:%d fctrl->flash_driver_type = %d", __func__, __LINE__,
 		fctrl->flash_driver_type);
 
@@ -1048,6 +1061,82 @@ static int32_t msm_flash_get_dt_data(struct device_node *of_node,
 }
 
 #ifdef CONFIG_COMPAT
+//ZTEMT: added by congshan for front camera flash start
+static int camera_lcd_mask = 0;
+static int camera_lcd_reg = 0;
+static int camera_lcd_wled = 0;
+
+extern struct msm_fb_data_type *zte_camera_mfd;
+
+int camera_lcd_bkl_handle(void)
+{
+	return camera_lcd_mask;
+}
+int get_camera_lcd_bkl_reg(void)
+{
+	return camera_lcd_reg;
+}
+int get_camera_lcd_bkl_wled(void)
+{
+	return camera_lcd_wled;
+}
+
+static void zte_camera_backlight(struct msm_fb_data_type *mfd, enum msm_flash_cfg_type_t value)
+{
+	struct mdss_panel_data *pdata;
+	int temp;
+
+	mutex_lock(&mfd->bl_lock);
+	if ((mfd->panel_power_state == MDSS_PANEL_POWER_OFF) || (NULL == mfd)) {
+		mutex_unlock(&mfd->bl_lock);
+		return;
+	}
+	pdata = dev_get_platdata(&mfd->pdev->dev);
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		mutex_unlock(&mfd->bl_lock);
+		return;
+	}
+
+	switch (value) {
+	case CFG_LCD_BKL_NORM:
+		camera_lcd_mask = 0;
+		camera_lcd_reg = 0;
+		camera_lcd_wled = 0;
+		temp = mfd->bl_level_scaled;
+		break;
+	case CFG_LCD_BKL_LOW:
+		camera_lcd_mask = 1;
+		camera_lcd_reg = 0;
+		camera_lcd_wled = 0;
+		temp = mfd->panel_info->bl_max;;
+		break;
+	case CFG_LCD_BKL_HIGH:
+		camera_lcd_mask = 1;
+		camera_lcd_reg = 0;
+		camera_lcd_wled = 0;
+		temp = mfd->panel_info->bl_max;
+		break;
+	case CFG_LCD_BKL_SET:
+		camera_lcd_mask = 1;
+		camera_lcd_reg = 0;
+		camera_lcd_wled = 0;
+		temp = zte_camera_bkl_level;
+		break;
+	default:
+		camera_lcd_mask = 0;
+		camera_lcd_reg = 0;
+		camera_lcd_wled = 0;
+		temp = mfd->bl_level_scaled;
+		break;
+	}
+	pr_err ("%s value=%d temp=%d\n", __func__, value, temp);
+	if (0 != mfd->bl_level_scaled)
+	    pdata->set_backlight(pdata, temp);
+	mutex_unlock(&mfd->bl_lock);
+}
+//ZTEMT: added by congshan for front camera flash end
+
 static long msm_flash_subdev_do_ioctl(
 	struct file *file, unsigned int cmd, void *arg)
 {
@@ -1084,6 +1173,13 @@ static long msm_flash_subdev_do_ioctl(
 		case CFG_FLASH_HIGH:
 			flash_data.cfg.settings = compat_ptr(u32->cfg.settings);
 			break;
+		//ZTEMT: added by congshan for front camera flash start
+		case CFG_LCD_BKL_NORM:
+		case CFG_LCD_BKL_LOW:
+	    case CFG_LCD_BKL_HIGH:
+			zte_camera_backlight(zte_camera_mfd, flash_data.cfg_type);
+			break;
+		//ZTEMT: added by congshan for front camera flash end
 		case CFG_FLASH_INIT:
 			flash_data.cfg.flash_init_info = &flash_init_info;
 			if (copy_from_user(&flash_init_info32,
@@ -1106,6 +1202,11 @@ static long msm_flash_subdev_do_ioctl(
 				flash_init_info32.power_setting_array);
 			break;
 		default:
+			//ZTEMT: added by congshan for front camera flash start
+			camera_lcd_mask = 0;
+		    camera_lcd_reg = 0;
+		    camera_lcd_wled = 0;
+			//ZTEMT: added by congshan for front camera flash end
 			break;
 		}
 		break;
@@ -1277,6 +1378,82 @@ static int32_t msm_flash_platform_probe(struct platform_device *pdev)
 	CDBG("probe success\n");
 	return rc;
 }
+//ZTEMT: added by congshan for front camera flash start
+static ssize_t brightness_show(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf)
+
+{
+	return sprintf(buf, "%u\n", zte_camera_bkl_level);
+}
+static int bkl_recov = 1;
+
+static ssize_t brightness_store(struct kobject *kobj,
+	struct kobj_attribute *attr, const char *buf, size_t size)
+
+{
+	uint32_t val = 0;
+	sscanf(buf, "%d", &val);
+	zte_camera_bkl_level = val;
+	if((0 != bkl_recov) && (0 != val)) {
+		zte_camera_backlight(zte_camera_mfd, CFG_LCD_BKL_SET);
+	}
+	return size;
+}
+static ssize_t bkl_recov_show(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf)
+
+{
+
+	return sprintf(buf, "%u\n", bkl_recov);
+}
+
+static ssize_t bkl_recov_store(struct kobject *kobj,
+	struct kobj_attribute *attr, const char *buf, size_t size)
+
+{
+	uint32_t val = 0;
+	sscanf(buf, "%d", &val);
+	bkl_recov = val;
+	if((0 != bkl_recov) && (0 != val)) {
+		zte_camera_backlight(zte_camera_mfd, CFG_LCD_BKL_NORM);
+	}
+	return size;
+}
+
+static struct kobj_attribute kobj_attr_flash_bkl[] = {
+	__ATTR(brightness,      0664, brightness_show,     brightness_store),
+	__ATTR(bkl_recov,       0664, bkl_recov_show,      bkl_recov_store),
+};
+
+static struct kobject *flash_bkl_kobj = NULL;
+
+static int  flash_bkl_init(void)
+{
+	int retval = 0;
+	int attr_count = 0;
+    flash_bkl_kobj = kobject_create_and_add("flash_bkl", kernel_kobj);
+
+    if (!flash_bkl_kobj) {
+        pr_err("failed to create and add flash_bkl\n");
+        return -ENOMEM;
+    }
+	for (attr_count = 0; attr_count < ARRAY_SIZE(kobj_attr_flash_bkl); attr_count++) {
+	    retval = sysfs_create_file(flash_bkl_kobj, &kobj_attr_flash_bkl[attr_count].attr);
+	    if (retval < 0) {
+		    pr_err("failed to create flash_bkl sysfs attributes\n");
+		    goto err_sys_creat;
+	    }
+	}
+	return retval;
+	err_sys_creat:
+	for (; attr_count >= 0; attr_count--)
+	    sysfs_remove_file(flash_bkl_kobj, &kobj_attr_flash_bkl[attr_count].attr);
+	kobject_put(flash_bkl_kobj);
+	return retval;
+
+}
+//ZTEMT: added by congshan for front camera flash end
+
 
 MODULE_DEVICE_TABLE(of, msm_flash_i2c_dt_match);
 
@@ -1316,6 +1493,9 @@ static int __init msm_flash_init_module(void)
 	rc = i2c_add_driver(&msm_flash_i2c_driver);
 	if (rc)
 		pr_err("platform probe for flash failed");
+	//ZTEMT: added by congshan for front camera flash start
+	flash_bkl_init();
+	//ZTEMT: added by congshan for front camera flash end
 
 	return rc;
 }

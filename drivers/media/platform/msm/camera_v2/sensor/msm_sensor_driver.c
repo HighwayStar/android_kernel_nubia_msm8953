@@ -23,12 +23,146 @@
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
 #define SENSOR_MAX_MOUNTANGLE (360)
-
+//#define IMX318_BUILT_IN_GYRO_TEST //ZTEMT:wangdeyong add to validate built-in gyro_if for imx318
 static struct v4l2_file_operations msm_sensor_v4l2_subdev_fops;
 static int32_t msm_sensor_driver_platform_probe(struct platform_device *pdev);
 
 /* Static declaration */
 static struct msm_sensor_ctrl_t *g_sctrl[MAX_CAMERAS];
+
+#if defined(IMX318_BUILT_IN_GYRO_TEST)
+//ZTEMT:wangdeyong add to validate built-in gyro_if for imx318  --start
+static int imx318_gyro_if_access_validate(const struct msm_sensor_ctrl_t  *s_ctrl,const uint16_t *write_adder,const uint16_t* write_data)
+{
+	int rc_flag = -1;
+	uint16_t read_flag = 0X03;
+	uint16_t read_data = 0X00;
+	uint16_t test_data =0X00;
+	uint16_t try_read_read_flag = 2;
+	uint16_t try_read_write_flag = 2;
+	CDBG("E %s  write_adder= 0X%X  write_data=0X%X\n",__func__,*write_adder,*write_data);
+	//Active Gyro Setting
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3900,0X01,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Active Gyro Setting i2c_write failed  return\n ");
+		goto  error;
+	}
+	//Get Active Gyro Setting
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3900,&test_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Get Active Gyro Setting i2c_read failed  return\n ");
+		goto  error;
+	}
+	CDBG("Get Active Gyro Setting %s  %d  test_data  from 0X3900=0X%x\n",__func__,__LINE__,test_data);
+
+	//Set GICAddr
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3920,*write_adder,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Set GICAddr i2c_write failed  return\n ");
+		goto  error;
+	}
+	//Get GICAddr
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3920,&test_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Get GICAddr i2c_read failed  return\n ");
+		goto  error;
+	}
+	CDBG("Get GICAddr  %s  %d  test_data  from 0X3920=0X%X\n",__func__,__LINE__,test_data);
+	//Get Default data
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3922,&test_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("wdytest Get Default data i2c_read failed  return\n ");
+		goto  error;
+	}
+		CDBG("Get Default data %s  %d  test_data  from 0X3922=0X%X\n",__func__,__LINE__,test_data);
+
+	//Set GICWDATA
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3921,*write_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Set GICWDATA i2c_write failed  return\n ");
+		goto  error;
+	}
+
+	//Get GICWDATA
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3921,&test_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Get GICWDATA i2c_read failed  return\n ");
+		goto  error;
+	}
+	CDBG("Get GICWDATA  %s  %d  test_data  from 0X3921=0X%X\n",__func__,__LINE__,test_data);
+	//Set GICWEN
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3928,0X01,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Set GICREN i2c_write failed  return \n");
+		goto  error;
+	}
+	try_read_write_flag_again:
+	//Get GICWEN
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3928,&test_data,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Get GICWEN i2c_read failed  return\n ");
+		goto  error;
+	}
+
+	if(test_data){
+		pr_err("Get GICWEN  write  flag failed,may need wait%s  %d  test_data  from 0X3928=0X%x  try_read_write_flag=%d \n",__func__,__LINE__,test_data,try_read_write_flag);
+		if(try_read_write_flag){
+			try_read_write_flag --;
+			goto try_read_write_flag_again;
+		}
+	}
+
+	//Set GICREN
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3929,0X01,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Set GICREN i2c_write failed  return \n");
+		goto  error;
+	}
+
+	//Get GICREN
+	try_read_read_flag_again:
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+		s_ctrl->sensor_i2c_client,0X3929,&read_flag,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Set GICAddr i2c_write failed  return\n ");
+		goto  error;
+	}
+	CDBG("Get GICREN  %s  %d  read_flag  from 0X3929=%d\n",__func__,__LINE__,read_flag);
+	if(read_flag == 0){
+		//Get Read data
+		if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(\
+			s_ctrl->sensor_i2c_client,0X3922,&read_data ,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+			pr_err("i2c_read failed  return \n");
+			goto  error;
+		}
+		else{
+			CDBG("Get Read data   %s  %d  read_flag  from 0X3922=0X%x\n",__func__,__LINE__,read_data);
+		}
+
+	}
+	else{
+		pr_err("read flag failed,may need wait  read_flag=%d try_read_read_flag=%d\n",read_flag,try_read_read_flag);
+		if(try_read_read_flag){
+			try_read_read_flag --;
+			goto  try_read_read_flag_again;
+		}
+	}
+	rc_flag = (*write_data ==read_data)?0:-1;
+	pr_err("%s  write_adder=0X%X write_data=0X%X   read_flag=%d read_data=0X%X  rc_flag=%d\n",\
+		__func__,*write_adder,*write_data,read_flag,read_data,rc_flag);
+	CDBG("X %s\n",__func__);
+
+	error:
+	//Disable Gyro Setting
+	if((s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(\
+		s_ctrl->sensor_i2c_client,0X3900,0X00,MSM_CAMERA_I2C_BYTE_DATA) < 0)){
+		pr_err("Disable Gyro Setting i2c_write failed  return\n ");
+		return -1;
+	}
+	return rc_flag;
+
+}
+#endif
+//ZTEMT:wangdeyong add to validate built-in gyro_if for imx318  --end
 
 static int msm_sensor_platform_remove(struct platform_device *pdev)
 {
@@ -698,7 +832,13 @@ int32_t msm_sensor_driver_probe(void *setting,
 
 	unsigned long                        mount_pos = 0;
 	uint32_t                             is_yuv;
-
+	#if defined(IMX318_BUILT_IN_GYRO_TEST)
+	int32_t i = 0;
+	//uint16_t gyro_write_adder[6] = {0X6B,0X6A,0X6B,0X1A,0X1B,0X38};
+	//uint16_t gyro_write_data[6] = {0X01,0X10,0X01,0X02,0X10,0X01};
+	uint16_t gyro_write_adder[1] = {0X6B};
+	uint16_t gyro_write_data[1] = {0X01};
+	#endif
 	/* Validate input parameters */
 	if (!setting) {
 		pr_err("failed: slave_info %pK", setting);
@@ -797,14 +937,14 @@ int32_t msm_sensor_driver_probe(void *setting,
 	}
 
 	/* Print slave info */
-	CDBG("camera id %d Slave addr 0x%X addr_type %d\n",
+	pr_err("camera id %d Slave addr 0x%X addr_type %d   sensor_name=%s\n",
 		slave_info->camera_id, slave_info->slave_addr,
-		slave_info->addr_type);
-	CDBG("sensor_id_reg_addr 0x%X sensor_id 0x%X sensor id mask %d",
+		slave_info->addr_type,slave_info->sensor_name);
+	pr_err("sensor_id_reg_addr 0x%X sensor_id 0x%X sensor id mask %d",
 		slave_info->sensor_id_info.sensor_id_reg_addr,
 		slave_info->sensor_id_info.sensor_id,
 		slave_info->sensor_id_info.sensor_id_mask);
-	CDBG("power up size %d power down size %d\n",
+	pr_err("power up size %d power down size %d\n",
 		slave_info->power_setting_array.size,
 		slave_info->power_setting_array.size_down);
 	CDBG("position %d",
@@ -979,7 +1119,21 @@ CSID_TG:
 		goto free_camera_info;
 	}
 
-	pr_err("%s probe succeeded", slave_info->sensor_name);
+	pr_err("camera sensor %s probe succeeded\n", slave_info->sensor_name);
+
+	//ZTEMT:wangdeyong add to validate built-in gyro_if for imx318  --start
+	#if defined(IMX318_BUILT_IN_GYRO_TEST)
+	if(slave_info->sensor_name && !strcmp("imx318",slave_info->sensor_name)){
+		for(i = 0;i < sizeof(gyro_write_adder)/sizeof(gyro_write_adder[0]);i++){
+			if(imx318_gyro_if_access_validate(s_ctrl,&gyro_write_adder[i],&gyro_write_data[i]) == 0){
+				pr_err("imx318 gyro_test  success  at address:0X%X  with data:0X%X\n",gyro_write_adder[i],gyro_write_data[i]);
+			}else{
+				pr_err("imx318 gyro_test  failed !!!     at address:0X%X  with data:0X%X\n",gyro_write_adder[i],gyro_write_data[i]);
+			}
+		}
+	}
+	#endif
+	//ZTEMT:wangdeyong add to validate built-in gyro_if for imx318  --end
 
 #if !defined(CONFIG_MACH_NUBIA_NX551J) && !defined(CONFIG_MACH_NUBIA_NX549J)
 	s_ctrl->bypass_video_node_creation =
