@@ -262,3 +262,11 @@ config MSM_SEC_CCI_DEBUG
 	---help---
 	  Enables simulation of secure camera for Secure CCI Realy
 	  debugging.
+
+#fengxun add for AL3200--------Start
+config AL3200
+	bool "Qualcomm MSM camera debugging with printk"
+	depends on MSM_CAMERA
+	---help---
+	  Enable support mini isp.
+#fengxun add for AL3200--------End
