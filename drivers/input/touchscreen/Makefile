@@ -92,3 +92,7 @@ obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) 	+= synaptics_fw_update.o
 obj-$(CONFIG_TOUCHSCREEN_GT9XX)		+= gt9xx/
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET)	+= hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_FTS)		+= focaltech_touch/
+obj-$(CONFIG_ZTEMT_TOUCHSCREEN_ATMEL_MXTS)      += atmel/
+obj-$(CONFIG_TOUCHSCREEN_NUBIA_SYNAPTICS_DSX) += nubia_synaptics_dsx/
+obj-$(CONFIG_TOUCHSCREEN_NUBIA_SYNAPTICS_S1302) += nubia_synaptics_s1302/
+obj-$(CONFIG_ZTEMT_TOUCHSCREEN_GT1X) += gt1x/
