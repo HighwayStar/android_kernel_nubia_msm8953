@@ -62,6 +62,40 @@ static DEFINE_SPINLOCK(rtcdev_lock);
 static struct mutex power_on_alarm_lock;
 static struct alarm init_alarm;
 
+#ifdef CONFIG_ZTEMT_FEATURE_POWER_OFF_CHARGE_MODE_ALARM
+#include <linux/reboot.h>
+
+static struct work_struct charger_mode_restart_work;
+static bool poweroff_charge_mode = false;
+
+static int get_poweroff_charge_mode(char *options)
+{
+	if(strncmp(options,"charger",strlen("charger"))==0){
+		printk(KERN_ERR"Charger mode!!!");
+		poweroff_charge_mode = true;
+	}
+
+	return 1;
+}
+__setup("androidboot.mode=",get_poweroff_charge_mode);
+
+static void charger_mode_restart_work_func(struct work_struct *work)
+{
+	kernel_restart("rtc");
+}
+
+static enum alarmtimer_restart init_alarm_handle(struct alarm *alarm,ktime_t now)
+{
+	if(poweroff_charge_mode){
+		printk(KERN_ERR"Will reboot for poweroff alarm!!!!");
+		INIT_WORK(&charger_mode_restart_work,charger_mode_restart_work_func);
+		schedule_work(&charger_mode_restart_work);
+	}
+
+	return ALARMTIMER_NORESTART;
+}
+#endif
+
 /**
  * power_on_alarm_init - Init power on alarm value
  *
@@ -88,7 +122,11 @@ void power_on_alarm_init(void)
 
 	if (alarm_time) {
 		alarm_ktime = ktime_set(alarm_time, 0);
+#ifdef CONFIG_ZTEMT_FEATURE_POWER_OFF_CHARGE_MODE_ALARM
+		alarm_init(&init_alarm, ALARM_POWEROFF_REALTIME, init_alarm_handle);
+#else
 		alarm_init(&init_alarm, ALARM_POWEROFF_REALTIME, NULL);
+#endif
 		alarm_start(&init_alarm, alarm_ktime);
 	}
 }
@@ -147,6 +185,13 @@ void set_power_on_alarm(void)
 	alarm_delta = wall_time.tv_sec - rtc_secs;
 	alarm_time = alarm_secs - alarm_delta;
 
+#ifdef CONFIG_ZTEMT_FEATURE_POWER_OFF_ALARM_ADVANCE_BOOT_TIME
+	alarm_time = alarm_time - CONFIG_ZTEMT_FEATURE_POWER_OFF_ALARM_ADVANCE_BOOT_TIME;
+	if(alarm_time <= rtc_secs){
+		printk(KERN_ERR"%s:invalid alarm,will disable this alarm!\n",__func__);
+		goto disable_alarm;
+	}
+#endif
 	rtc_time_to_tm(alarm_time, &alarm.time);
 	alarm.enabled = 1;
 	rc = rtc_set_alarm(rtcdev, &alarm);
