@@ -46,8 +46,11 @@
 #define ISPIF_INTF_CMD_DISABLE_IMMEDIATELY    0x02
 
 #define ISPIF_TIMEOUT_SLEEP_US                1000
-#define ISPIF_TIMEOUT_ALL_US               1000000
-#define ISPIF_SOF_DEBUG_COUNT                   0
+// ZTEMT: fuyipeng add for slowshutter -----start
+//#define ISPIF_TIMEOUT_ALL_US               1000000
+#define ISPIF_TIMEOUT_ALL_US               1000000000
+// ZTEMT: fuyipeng add for slowshutter -----end
+#define ISPIF_SOF_DEBUG_COUNT                    5
 
 /* 3D Threshold value according guidelines for line width 1280 */
 #define STEREO_DEFAULT_3D_THRESHOLD           0x36
@@ -1165,6 +1168,10 @@ static int msm_ispif_stop_immediately(struct ispif_device *ispif,
 					params->entries[i].vfe_intf, 0);
 		}
 	}
+
+#ifndef CONFIG_AL3200
+	rc = msm_ispif_reset_hw(ispif);
+#endif
 
 	return rc;
 }

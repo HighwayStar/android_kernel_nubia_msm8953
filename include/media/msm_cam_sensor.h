@@ -188,6 +188,9 @@ struct msm_actuator_cfg_data32 {
 		struct msm_actuator_get_info_t get_info;
 		struct msm_actuator_set_position_t setpos;
 		enum af_camera_name cam_name;
+        // ZTEMT: fuyipeng add for manual AF -----start
+        char act_name[MSM_ACTUATOT_MAX_NAME];
+        // ZTEMT: fuyipeng add for manual AF -----end
 	} cfg;
 };
 
@@ -207,6 +210,7 @@ struct sensorb_cfg_data32 {
 		compat_uptr_t                 setting;
 		struct msm_sensor_i2c_sync_params sensor_i2c_sync_params;
 	} cfg;
+        uint16_t sensor_temp;//ztemt: guxiaodong add for tmp
 };
 
 struct msm_ois_params_t32 {
