@@ -1936,8 +1936,12 @@ static void qpnp_flash_led_brightness_set(struct led_classdev *led_cdev,
 				led->flash_node[led->num_leds - 1].
 				prgm_current2 =
 				flash_node->prgm_current;
-
-			return;
+            #ifdef CONFIG_CAMERA_SINGLE_LED
+				pr_err("camera is single led");
+            #else
+				pr_err("camera is dual led");
+				return;
+            #endif
 		} else if (flash_node->id == FLASH_LED_SWITCH) {
 			if (!value) {
 				flash_node->prgm_current = 0;
