@@ -40,7 +40,10 @@
 #define SAMPLING_RATE_48KHZ     48000
 #define SAMPLING_RATE_96KHZ     96000
 #define SAMPLING_RATE_192KHZ    192000
-
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+static int  external_pa_power_ctrl = 9;
+static int external_pa_control_gpio = -1;
+#endif //CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
 #define PRI_MI2S_ID	(1 << 0)
 #define SEC_MI2S_ID	(1 << 1)
 #define TER_MI2S_ID	(1 << 2)
@@ -83,6 +86,10 @@ static int msm8952_mclk_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event);
 static int msm8952_wsa_switch_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event);
+#ifdef CONFIG_ZTEMT_AUDIO_DIGITAL_MIC
+static int msm8x16_dmic_event(struct snd_soc_dapm_widget *w,
+                              struct snd_kcontrol *kcontrol, int event);
+#endif
 
 /*
  * Android L spec
@@ -97,9 +104,15 @@ static struct wcd_mbhc_config mbhc_cfg = {
 	.swap_gnd_mic = NULL,
 	.hs_ext_micbias = false,
 	.key_code[0] = KEY_MEDIA,
+	#ifdef CONFIG_ZTEMT_AUDIO
+	.key_code[1] = KEY_VOLUMEUP,
+	.key_code[2] = KEY_VOLUMEDOWN,
+	.key_code[3] = KEY_VOICECOMMAND,
+	#else
 	.key_code[1] = KEY_VOICECOMMAND,
 	.key_code[2] = KEY_VOLUMEUP,
 	.key_code[3] = KEY_VOLUMEDOWN,
+	#endif
 	.key_code[4] = 0,
 	.key_code[5] = 0,
 	.key_code[6] = 0,
@@ -207,8 +220,15 @@ static const struct snd_soc_dapm_widget msm8952_dapm_widgets[] = {
 	SND_SOC_DAPM_MIC("Handset Mic", NULL),
 	SND_SOC_DAPM_MIC("Headset Mic", NULL),
 	SND_SOC_DAPM_MIC("Secondary Mic", NULL),
+
+	#ifdef CONFIG_ZTEMT_AUDIO_DIGITAL_MIC
+	SND_SOC_DAPM_MIC("Digital Mic1", msm8x16_dmic_event),
+	SND_SOC_DAPM_MIC("Digital Mic2", msm8x16_dmic_event),
+	#else
 	SND_SOC_DAPM_MIC("Digital Mic1", NULL),
 	SND_SOC_DAPM_MIC("Digital Mic2", NULL),
+	#endif
+
 	SND_SOC_DAPM_SUPPLY("VDD_WSA_SWITCH", SND_SOC_NOPM, 0, 0,
 	msm8952_wsa_switch_event,
 	SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -264,6 +284,45 @@ int is_ext_spk_gpio_support(struct platform_device *pdev,
 	return 0;
 }
 
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+bool aw8736_ext_spk_power_amp_on(int value)
+{
+	int curr = 0;
+	int count= 0;
+	int latch = 0;
+	pr_debug("%s value = %d, gpio = %d\n",__func__, value, external_pa_control_gpio);
+	if (!gpio_is_valid(external_pa_control_gpio)) {
+		pr_err("%s: Invalid gpio: %d\n", __func__, external_pa_control_gpio);
+		return false;
+	}
+	curr = gpio_get_value_cansleep(external_pa_control_gpio);
+	pr_debug("%s: external_pa_control_gpio current value %d\n",__func__, curr);
+	if (curr != value){
+		latch = value;
+		if(value) {
+			for(count=0;count < external_pa_power_ctrl; count++) {
+				gpio_direction_output(external_pa_control_gpio, latch);
+				latch=!latch;
+			}
+		}
+		else {
+			gpio_direction_output(external_pa_control_gpio, value);
+		}
+	}
+	curr = gpio_get_value_cansleep(external_pa_control_gpio);
+	pr_debug("%s: external_pa_control_gpio current finish value %d\n",__func__, curr);
+	return true;
+}
+
+static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
+{
+	if (enable)
+		aw8736_ext_spk_power_amp_on(1);
+	else
+		aw8736_ext_spk_power_amp_on(0);
+	return 0;
+}
+#else
 static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
 {
 	struct snd_soc_card *card = codec->component.card;
@@ -298,6 +357,7 @@ static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
 	}
 	return 0;
 }
+#endif //CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
 
 /* Validate whether US EU switch is present or not */
 int is_us_eu_switch_gpio_support(struct platform_device *pdev,
@@ -330,6 +390,20 @@ int is_us_eu_switch_gpio_support(struct platform_device *pdev,
 		}
 		mbhc_cfg.swap_gnd_mic = msm8952_swap_gnd_mic;
 	}
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+	external_pa_control_gpio = of_get_named_gpio(pdev->dev.of_node,
+					"qcom,cdc-ext-amp-gpios", 0);
+	if(external_pa_control_gpio < 0) {
+		dev_dbg(&pdev->dev,"property %s in node %s not found %d\n",
+				"qcom,cdc-ext-amp-gpios", pdev->dev.of_node->full_name,
+				external_pa_control_gpio);
+	}
+	if(gpio_request(external_pa_control_gpio,"ext_pa_ctrl_pin")){
+		pr_err("%s: ext pa control gpio request failed\n",__func__);
+	}
+	aw8736_ext_spk_power_amp_on(0);
+
+#endif// CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
 	return 0;
 }
 
@@ -1118,6 +1192,37 @@ static int msm8952_mclk_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+#ifdef CONFIG_ZTEMT_AUDIO_DIGITAL_MIC
+static int msm8x16_dmic_event(struct snd_soc_dapm_widget *w,
+		struct snd_kcontrol *kcontrol, int event)
+{
+	struct msm8916_asoc_mach_data *pdata = NULL;
+	int ret = 0;
+
+	pdata = snd_soc_card_get_drvdata(w->codec->component.card);
+	pr_debug("%s: event = %d\n", __func__, event);
+	switch (event) {
+		case SND_SOC_DAPM_PRE_PMU:
+	pr_debug("%s: enable the dmic_clk and data gpio \n", __func__);
+			ret = msm_gpioset_activate(CLIENT_WCD_INT, "dmic_gpio");
+			if (ret < 0)
+				pr_err("%s: error during pinctrl state select\n",
+						__func__);
+			break;
+		case SND_SOC_DAPM_POST_PMD:
+			ret = msm_gpioset_suspend(CLIENT_WCD_INT, "dmic_gpio");
+			if (ret < 0)
+				pr_err("%s: error during pinctrl state select\n",
+						__func__);
+			break;
+		default:
+			pr_err("%s: error invalid event %d\n",__func__,event);
+			return -EINVAL;
+	}
+	return 0;
+}
+#endif
+
 static int msm8952_wsa_switch_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
 {
@@ -1631,6 +1736,18 @@ static void *def_msm8952_wcd_mbhc_cal(void)
 	 * 210-290 == Button 2
 	 * 360-680 == Button 3
 	 */
+	#ifdef CONFIG_ZTEMT_AUDIO
+	btn_low[0] =110;
+	btn_high[0] = 110;
+	btn_low[1] = 250;
+	btn_high[1] = 250;
+	btn_low[2] = 437;
+	btn_high[2] = 437;
+	btn_low[3] = 437;
+	btn_high[3] = 437;
+	btn_low[4] = 437;
+	btn_high[4] = 437;
+	#else
 	btn_low[0] = 75;
 	btn_high[0] = 75;
 	btn_low[1] = 150;
@@ -1641,6 +1758,7 @@ static void *def_msm8952_wcd_mbhc_cal(void)
 	btn_high[3] = 450;
 	btn_low[4] = 500;
 	btn_high[4] = 500;
+	#endif
 
 	return msm8952_wcd_cal;
 }
@@ -1665,7 +1783,10 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_ignore_suspend(dapm, "Secondary Mic");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic1");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic2");
-
+#ifdef CONFIG_FEATURE_ZTEMT_AUDIO_EXT_PA
+	snd_soc_dapm_ignore_suspend(dapm, "EXT SPK PA");
+	snd_soc_dapm_ignore_suspend(dapm, "LINEOUT");
+#endif
 	snd_soc_dapm_ignore_suspend(dapm, "EAR");
 	snd_soc_dapm_ignore_suspend(dapm, "HEADPHONE");
 	snd_soc_dapm_ignore_suspend(dapm, "SPK_OUT");
@@ -2169,6 +2290,7 @@ static struct snd_soc_dai_link msm8952_dai[] = {
 		.dpcm_capture = 1,
 		.ignore_pmdown_time = 1,
 	},
+
 	{/* hw:x,27 */
 		.name = "MSM8X16 Compress3",
 		.stream_name = "Compress3",
@@ -2426,6 +2548,7 @@ static struct snd_soc_dai_link msm8952_dai[] = {
 		.ignore_pmdown_time = 1,
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA29,
 	},
+
 	/* Backend I2S DAI Links */
 	{
 		.name = LPASS_BE_PRI_MI2S_RX,
@@ -2489,6 +2612,23 @@ static struct snd_soc_dai_link msm8952_dai[] = {
 		.ignore_pmdown_time = 1, /* dai link has playback support */
 		.ignore_suspend = 1,
 	},
+#ifdef CONFIG_SND_SOC_TAS2555_GENERIC
+	{
+		.name = LPASS_BE_QUIN_MI2S_RX,
+		.stream_name = "Quinary MI2S Playback",
+		.cpu_dai_name = "msm-dai-q6-mi2s.5",
+		.platform_name = "msm-pcm-routing",
+		.codec_dai_name = "tas2555 ASI1",
+		.codec_name = "tas2555.5-004c",
+		.no_pcm = 1,
+		.dpcm_playback = 1,
+		.be_id = MSM_BACKEND_DAI_QUINARY_MI2S_RX,
+		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.ops = &msm8952_quin_mi2s_be_ops,
+		.ignore_pmdown_time = 1,
+		.ignore_suspend = 1,
+	},
+#endif
 	{
 		.name = LPASS_BE_QUAT_MI2S_TX,
 		.stream_name = "Quaternary MI2S Capture",
@@ -2689,6 +2829,7 @@ static struct snd_soc_dai_link msm8952_dai[] = {
 		.ignore_suspend = 1,
 	},
 };
+#ifndef CONFIG_SND_SOC_TAS2555_GENERIC
 static struct snd_soc_dai_link msm8952_hdmi_dba_dai_link[] = {
 	{
 		.name = LPASS_BE_QUIN_MI2S_RX,
@@ -2724,6 +2865,7 @@ static struct snd_soc_dai_link msm8952_quin_dai_link[] = {
 		.ignore_suspend = 1,
 	},
 };
+#endif
 
 static struct snd_soc_dai_link msm8952_split_a2dp_dai_link[] = {
 	{
@@ -2742,10 +2884,16 @@ static struct snd_soc_dai_link msm8952_split_a2dp_dai_link[] = {
 	},
 };
 
+#ifdef CONFIG_SND_SOC_TAS2555_GENERIC
+static struct snd_soc_dai_link msm8952_dai_links[
+ARRAY_SIZE(msm8952_dai) +
+ARRAY_SIZE(msm8952_split_a2dp_dai_link)];
+#else
 static struct snd_soc_dai_link msm8952_dai_links[
 ARRAY_SIZE(msm8952_dai) +
 ARRAY_SIZE(msm8952_hdmi_dba_dai_link) +
 ARRAY_SIZE(msm8952_split_a2dp_dai_link)];
+#endif
 
 static int msm8952_wsa881x_init(struct snd_soc_component *component)
 {
@@ -3031,6 +3179,7 @@ static struct snd_soc_card *msm8952_populate_sndcard_dailinks(
 	len1 = ARRAY_SIZE(msm8952_dai);
 	memcpy(msm8952_dai_links, msm8952_dai, sizeof(msm8952_dai));
 	dailink = msm8952_dai_links;
+#ifndef CONFIG_SND_SOC_TAS2555_GENERIC
 	if (of_property_read_bool(dev->of_node,
 				"qcom,hdmi-dba-codec-rx")) {
 		dev_dbg(dev, "%s(): hdmi audio support present\n",
@@ -3045,6 +3194,7 @@ static struct snd_soc_card *msm8952_populate_sndcard_dailinks(
 				sizeof(msm8952_quin_dai_link));
 		len1 += ARRAY_SIZE(msm8952_quin_dai_link);
 	}
+#endif
 	if (of_property_read_bool(dev->of_node,
 				"qcom,split-a2dp")) {
 		dev_dbg(dev, "%s(): split a2dp support present\n",
