@@ -62,6 +62,24 @@ source "sound/soc/codecs/Kconfig"
 
 # generic frame-work
 source "sound/soc/generic/Kconfig"
+#add by zmwu
+config ZTEMT_AUDIO
+       bool "AUDIO MACRO for the same info for all Z11s project"
+       default n
+       help
+          AUDIO MACRO for NUBIA Z11s series
+
+config ZTEMT_AUDIO_ANALOG_MIC
+       bool "AUDIO MACRO for the project using analog mic "
+       default n
+       help
+          AUDIO MACRO for NUBIA Z11s series
+
+config ZTEMT_AUDIO_DIGITAL_MIC
+       bool "AUDIO MACRO for the project using digital mic "
+       default n
+       help
+          AUDIO MACRO for NUBIA Z11s series
 
 endif	# SND_SOC
 
