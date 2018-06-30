@@ -25,7 +25,7 @@
 #include "../nubia_panel/nubia_panel.dtsi"
 
 &dsi_gvo_rm67195_1080_5p2_cmd{
-       qcom,mdss-dsi-panel-timings-8996 = [
+       qcom,mdss-dsi-panel-timings-phy-v2 = [
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
@@ -34,7 +34,7 @@
 };
 
 &dsi_gvo_rm67198_1080_5p2_cmd{
-       qcom,mdss-dsi-panel-timings-8996 = [
+       qcom,mdss-dsi-panel-timings-phy-v2 = [
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
@@ -43,7 +43,7 @@
 };
 
 &dsi_edo_rm67191_1080_5p2_cmd{
-       qcom,mdss-dsi-panel-timings-8996 = [
+       qcom,mdss-dsi-panel-timings-phy-v2 = [
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
@@ -52,7 +52,7 @@
 };
 
 &dsi_sumsang_s6e3fa3x01_1080_5p2_cmd{
-       qcom,mdss-dsi-panel-timings-8996 = [
+       qcom,mdss-dsi-panel-timings-phy-v2 = [
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
                 23 1F 07 09 05 03 04 a0
@@ -106,7 +106,7 @@
 };
 
 &dsi_truly_1080_vid {
-	qcom,mdss-dsi-panel-timings-8996 = [23 1e 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
@@ -114,7 +114,7 @@
 };
 
 &dsi_truly_1080_cmd {
-	qcom,mdss-dsi-panel-timings-8996 = [23 1e 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
 		23 1e 08 09 05 03 04 a0
@@ -122,7 +122,7 @@
 };
 
 &dsi_r69006_1080p_video {
-	qcom,mdss-dsi-panel-timings-8996 = [24 1f 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
@@ -130,7 +130,7 @@
 };
 
 &dsi_r69006_1080p_cmd{
-	qcom,mdss-dsi-panel-timings-8996 = [24 1f 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
@@ -138,7 +138,7 @@
 };
 
 &dsi_adv7533_1080p {
-	qcom,mdss-dsi-panel-timings-8996 = [24 1f 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
@@ -146,7 +146,7 @@
 };
 
 &dsi_adv7533_720p {
-	qcom,mdss-dsi-panel-timings-8996 = [1e 1b 04 06 02 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [1e 1b 04 06 02 03 04 a0
 		1e 1b 04 06 02 03 04 a0
 		1e 1b 04 06 02 03 04 a0
 		1e 1b 04 06 02 03 04 a0
@@ -154,7 +154,7 @@
 };
 
 &dsi_truly_wuxga_vid {
-	qcom,mdss-dsi-panel-timings-8996 = [24 1f 08 09 05 03 04 a0
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
