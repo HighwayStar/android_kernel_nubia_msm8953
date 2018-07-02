@@ -21,4 +21,32 @@
 	model = "Qualcomm Technologies, Inc. MSM8953 MTP";
 	compatible = "qcom,msm8953-mtp", "qcom,msm8953", "qcom,mtp";
 	qcom,board-id= <8 0>;
+	reserved-memory {
+                ramoops_mem: ramoops_region@0 {
+                        compatible = "removed-dma-pool";
+                        no-map;
+                        reg = <0 0x9ff00000 0x0 0x100000>;
+                };
+        };
+
+};
+
+
+
+
+&soc {
+        ramoops {
+                compatible = "ramoops";
+                status = "ok";
+
+                /* This is tacked at the end of wcnss_fw_region@0 */
+                android,ramoops-buffer-start = <0x9ff00000>;
+                android,ramoops-buffer-size = <0x100000>;
+                android,ramoops-console-size = <0x70000>;
+                android,ramoops-pmsg-size = <0x50000>;
+                android,ramoops-record-size = <0x10000>;
+                android,ramoops-ftrace-size = <0x15000>;
+                android,ramoops-dump-oops = <0x1>;
+                linux,contiguous-region = <&ramoops_mem>;
+        };
 };
