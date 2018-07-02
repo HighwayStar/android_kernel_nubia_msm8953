@@ -1,0 +1,30 @@
+# Nubia configuration options
+
+config MACH_NUBIA
+    bool "NUBIA device"
+    depends on ARCH_MSM
+    help
+      Support for Nubia products
+
+config MACH_NUBIA_MSM8953
+    bool "NUBIA MSM8953"
+    depends on ARCH_MSM8953
+    select MACH_NUBIA
+    help
+      Support for MSM8953 Nubia variants
+
+menu "Nubia board selection"
+
+config MACH_NUBIA_NX549J
+    bool "NUBIA_NX549J board"
+    select MACH_NUBIA_MSM8953
+    help
+      Support for Nubia z11 mini s variant
+
+config MACH_NUBIA_NX551J
+    bool "NUBIA_NX551J board"
+    select MACH_NUBIA_MSM8953
+    help
+      Support for Nubia M2 variant
+
+endmenu
