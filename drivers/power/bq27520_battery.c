@@ -1737,7 +1737,7 @@ static int  bq27520_battery_probe(struct i2c_client *client,
 	wake_lock_init(&chip->soc_wlock, WAKE_LOCK_SUSPEND, "bq27520_soc");
 
 	chip->bq27520_batt_psy.name = "bq27520-fg";
-	chip->bq27520_batt_psy.type = POWER_SUPPLY_TYPE_FG;
+	chip->bq27520_batt_psy.type = POWER_SUPPLY_TYPE_BATTERY;
 	chip->bq27520_batt_psy.properties = bq27520_batt_props;
 	chip->bq27520_batt_psy.num_properties = ARRAY_SIZE(bq27520_batt_props);
 	chip->bq27520_batt_psy.get_property = bq27520_get_batt_property;
