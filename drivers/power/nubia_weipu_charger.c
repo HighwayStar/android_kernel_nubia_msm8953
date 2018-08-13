@@ -1068,7 +1068,7 @@ static irqreturn_t weipu_chg_handler(int irq, void *_chip)
 		pmi_charging_enable(wp_chip, WP_CHG_DISABLE);
 		
 		set_wp_chg_present(wp_chip, WP_CHG_PRESENT);
-		wp_set_usb_prop(wp_chip, POWER_SUPPLY_PROP_TYPE, POWER_SUPPLY_TYPE_WP);
+		wp_set_usb_prop(wp_chip, POWER_SUPPLY_PROP_TYPE, POWER_SUPPLY_TYPE_USB_HVDCP_3);
 		wp_set_usb_prop(wp_chip, POWER_SUPPLY_PROP_ONLINE, 1);
 
 		//start chg timeout check
@@ -1273,7 +1273,7 @@ static int wp_chg_probe(struct platform_device *pdev)
 	enable_irq_wake(wp_chip->weipu_st_irq);
 
 	wp_chip->wp_psy.name		= "wp_chg";
-	wp_chip->wp_psy.type		= POWER_SUPPLY_TYPE_WP;
+	wp_chip->wp_psy.type		= POWER_SUPPLY_TYPE_USB_HVDCP_3;
 	wp_chip->wp_psy.supplied_to = wp_chg_power_supplied_to;
 	wp_chip->wp_psy.get_property	= wp_chg_get_property;
 	wp_chip->wp_psy.set_property	= wp_chg_set_property;
