@@ -1068,6 +1068,93 @@
 			};
 		};
 
+		/* WSA VI sense */
+		wsa-vi {
+			wsa_vi_on: wsa_vi_on {
+				mux {
+					pins = "gpio94", "gpio95";
+					function = "wsa_io";
+				};
+
+				config {
+					pins = "gpio94", "gpio95";
+					drive-strength = <8>; /* 8 MA */
+					bias-disable; /* NO pull */
+				};
+			};
+
+			wsa_vi_off: wsa_vi_off {
+				mux {
+					pins = "gpio94", "gpio95";
+					function = "wsa_io";
+				};
+
+				config {
+					pins = "gpio94", "gpio95";
+					drive-strength = <2>; /* 2 MA */
+					bias-pull-down;
+				};
+			};
+		};
+
+		/* WSA Reset */
+		wsa_reset {
+			wsa_reset_on: wsa_reset_on {
+				mux {
+					pins = "gpio96";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio96";
+					drive-strength = <2>; /* 2 MA */
+					output-high;
+				};
+			};
+
+			wsa_reset_off: wsa_reset_off {
+				mux {
+					pins = "gpio96";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio96";
+					drive-strength = <2>; /* 2 MA */
+					output-low;
+				};
+			};
+		};
+
+		/* WSA CLK */
+		wsa_clk {
+			wsa_clk_on: wsa_clk_on {
+				mux {
+					pins = "gpio25";
+					function = "pri_mi2s_mclk_a";
+				};
+
+				config {
+					pins = "gpio25";
+					drive-strength = <8>; /* 8 MA */
+					output-high;
+				};
+			};
+
+			wsa_clk_off: wsa_clk_off {
+				mux {
+					pins = "gpio25";
+					function = "pri_mi2s_mclk_a";
+				};
+
+				config {
+					pins = "gpio25";
+					drive-strength = <2>; /* 2 MA */
+					output-low;
+					bias-pull-down;
+				};
+			};
+		};
 
 		pri-tlmm-lines {
 			pri_tlmm_lines_act: pri_tlmm_lines_act {
