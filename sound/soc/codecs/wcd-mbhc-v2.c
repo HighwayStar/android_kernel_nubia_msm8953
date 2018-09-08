@@ -687,11 +687,7 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			mbhc->current_plug = MBHC_PLUG_TYPE_HEADSET;
 			mbhc->jiffies_atreport = jiffies;
 		} else if (jack_type == SND_JACK_LINEOUT) {
-		    #ifdef CONFIG_ZTEMT_AUDIO
-			mbhc->current_plug = MBHC_PLUG_TYPE_HEADSET;
-			#else
 			mbhc->current_plug = MBHC_PLUG_TYPE_HIGH_HPH;
-			#endif
 		} else if (jack_type == SND_JACK_ANC_HEADPHONE)
 			mbhc->current_plug = MBHC_PLUG_TYPE_ANC_HEADPHONE;
 
@@ -702,8 +698,6 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			mbhc->mbhc_cb->compute_impedance &&
 			(mbhc->mbhc_cfg->linein_th != 0) &&
 			(!is_pa_on)) {
-			#ifdef CONFIG_ZTEMT_AUDIO
-			#else
 				mbhc->mbhc_cb->compute_impedance(mbhc,
 						&mbhc->zl, &mbhc->zr);
 			if ((mbhc->zl > mbhc->mbhc_cfg->linein_th &&
@@ -725,7 +719,6 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 				pr_debug("%s: Marking jack type as SND_JACK_LINEOUT\n",
 				__func__);
 			}
-			#endif
 		}
 
 		mbhc->hph_status |= jack_type;
@@ -963,11 +956,7 @@ static int wcd_check_cross_conn(struct wcd_mbhc *mbhc)
 	}
 
 
-#ifdef CONFIG_ZTEMT_AUDIO  // not support EURO headset
-	return false;
-#else
 	return (plug_type == MBHC_PLUG_TYPE_GND_MIC_SWAP) ? true : false;
-#endif
 }
 
 static bool wcd_is_special_headset(struct wcd_mbhc *mbhc)
@@ -1434,10 +1423,6 @@ correct_plug_type:
 			goto report;
 		}
 	}
-	#ifdef CONFIG_ZTEMT_AUDIO
-	if (plug_type == MBHC_PLUG_TYPE_HIGH_HPH)
-		plug_type = MBHC_PLUG_TYPE_HEADSET;
-	#endif
 
 report:
 	if (wcd_swch_level_remove(mbhc)) {
