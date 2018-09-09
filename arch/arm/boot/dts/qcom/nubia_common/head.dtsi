@@ -1,0 +1,6 @@
+#include "msm8953.dtsi"
+#include "msm-audio.dtsi"
+#include "msm8953-audio.dtsi"
+#include "msm8953-audio-mtp.dtsi"
+#include "msm8953-pinctrl.dtsi"
+#include "msm8953-pm.dtsi"
