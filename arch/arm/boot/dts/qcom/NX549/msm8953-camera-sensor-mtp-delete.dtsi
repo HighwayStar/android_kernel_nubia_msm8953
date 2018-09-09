@@ -11,23 +11,17 @@
  * GNU General Public License for more details.
  */
 
-&spmi_bus {
+&soc {
+	/delete-node/ qcom,camera-flash;
+};
 
-	qcom,pm8953@0 {
-		qcom,power-on@800 {
-			qcom,store-hard-reset-reason;
-			qcom,pon_1 {
-                                qcom,support-reset = <1>;
-                                qcom,s1-timer = <10256>;
-                                qcom,s2-timer = <2000>;
-                                qcom,s2-type = <7>;
-			};
-
-		};
-		pm8953_rtc: qcom,pm8953_rtc {
-			qcom,qpnp-rtc-alarm-pwrup = <1>;
-		};
-
-	};
-
+&cci {
+	/delete-node/ qcom,actuator@0;
+	/delete-node/ qcom,actuator@1;
+	/delete-node/ qcom,eeprom@0;
+	/delete-node/ qcom,eeprom@1;
+	/delete-node/ qcom,eeprom@2;
+	/delete-node/ qcom,camera@0;
+	/delete-node/ qcom,camera@1;
+	/delete-node/ qcom,camera@2;
 };

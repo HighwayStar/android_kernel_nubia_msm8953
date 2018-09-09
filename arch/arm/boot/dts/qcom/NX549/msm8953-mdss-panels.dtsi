@@ -10,18 +10,6 @@
  * GNU General Public License for more details.
  */
 
-#include "../dsi-panel-sim-video.dtsi"
-#include "../dsi-panel-sim-dualmipi-video.dtsi"
-#include "../dsi-panel-sim-cmd.dtsi"
-#include "../dsi-panel-sim-dualmipi-cmd.dtsi"
-#include "../dsi-panel-truly-1080p-video.dtsi"
-#include "../dsi-panel-truly-1080p-cmd.dtsi"
-#include "../dsi-adv7533-1080p.dtsi"
-#include "../dsi-adv7533-720p.dtsi"
-#include "../dsi-panel-r69006-1080p-video.dtsi"
-#include "../dsi-panel-r69006-1080p-cmd.dtsi"
-#include "../dsi-panel-truly-wuxga-video.dtsi"
-
 #include "../nubia_panel/nubia_panel.dtsi"
 
 &soc {
