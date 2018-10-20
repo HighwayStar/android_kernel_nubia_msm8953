@@ -4,3 +4,6 @@
 #include "msm8953-audio-mtp.dtsi"
 #include "msm8953-pinctrl.dtsi"
 #include "msm8953-pm.dtsi"
+#include "msm8953-regulator.dtsi"
+#include "msm-pm8953.dtsi"
+#include "msm-pmi8950.dtsi"

@@ -14,7 +14,6 @@
 
 &int_codec {
 	/delete-property/ qcom,cdc-us-euro-gpios;
-	qcom,msm-mbhc-hphl-swh = <1>;
 	qcom,msm-hs-micbias-type = "external";
 
 	pinctrl-0 = <&cdc_pdm_lines_sus &cdc_pdm_comp_lines_sus
@@ -69,11 +68,6 @@
 	asoc-codec = <&stub_codec>, <&pm8953_diangu_dig>, <&hdmi_dba>;
 	asoc-codec-names = "msm-stub-codec.1", "cajon_codec",
 						"msm-hdmi-dba-codec-rx";
-	/delete-property/ asoc-wsa-codec-names;
-	/delete-property/ asoc-wsa-codec-prefixes;
-	/delete-property/ msm-vdd-wsa-switch-supply;
-	/delete-property/ qcom,msm-vdd-wsa-switch-voltage;
-	/delete-property/ qcom,msm-vdd-wsa-switch-current;
 };
 
 /*
@@ -84,12 +78,6 @@
 //ZTEMT: fengxun added for AL3200
 */
 
-&ext_codec {
-	/delete-property/ qcom,cdc-us-euro-gpios;
-	/delete-property/ qcom,wsa-max-devs;
-	/delete-property/ qcom,wsa-devs;
-	/delete-property/ qcom,wsa-aux-dev-prefix;
-};
 
 //ZTEMT: fengxun added for AL3200
 &clock_audio {

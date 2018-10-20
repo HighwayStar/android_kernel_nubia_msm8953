@@ -13,7 +13,6 @@
 
 
 &int_codec {
-        qcom,cdc-ext-amp-gpios = <&tlmm 25 0>;
 	qcom,msm-mbhc-hphl-swh = <1>;
 	/delete-property/ asoc-wsa-codec-names;
 	/delete-property/ asoc-wsa-codec-prefixes;
@@ -22,16 +21,11 @@
 	/delete-property/ qcom,msm-vdd-wsa-switch-current;
 };
 
-//ZTEMT: fengxun added for AL3200
-//&pm8953_gpios {
-//	/delete-node/ gpio@c000;
-//};
-//ZTEMT: fengxun added for AL3200
-
 &ext_codec {
 	/delete-property/ qcom,wsa-max-devs;
 	/delete-property/ qcom,wsa-devs;
 	/delete-property/ qcom,wsa-aux-dev-prefix;
+	/delete-property/ qcom,cdc-us-euro-gpios;
 
 };
 

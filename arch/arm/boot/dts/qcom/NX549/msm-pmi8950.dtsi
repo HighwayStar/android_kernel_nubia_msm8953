@@ -107,14 +107,5 @@
 			};
 		};
 
-		pmi_haptic: qcom,haptic@c000 {
-			qcom,vmax-mv = <2700>;
-			status="okay";
-			qcom,actuator-type = "erm";
-			qcom,lra-high-z = "none";
-			qcom,lra-auto-res-mode = "none";
-			qcom,lra-res-cal-period = <4>;
-			qcom,ztemt_vibrator_ms =<22>;
-		};
 	};
 };

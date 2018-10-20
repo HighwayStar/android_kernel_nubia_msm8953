@@ -12,109 +12,13 @@
  */
 
 
-/ {
-	firmware: firmware {
-                android {
-                        compatible = "android,firmware";
-                        fstab {
-                                /delete-node/ vendor;
-                        };
-                };
-        };
-	reserved-memory {
-		other_ext_mem: other_ext_region@0 {
-			reg = <0x0 0x84a00000 0x0 0x1e00000>;
-		};
-	};
-
-
-};
 
 &soc {
-
-	qcom,bcl {
-		qcom,ibat-monitor {
-			qcom,soc-low-threshold = <5>;
-		};
-	};
-
-
-	spi_3: spi@78b7000 { /* BLSP1 QUP3 */
-		status = "disabled";
-	};
-
-	i2c_2: i2c@78b6000 { /* BLSP1 QUP2 */
-		/* DSI_TO_HDMI I2C configuration */
-		/delete-node/ adv7533@39;
-	};
-
-	i2c_3: i2c@78b7000 { /* BLSP1 QUP3 */
-		status = "okay";
-	};
 
 	i2c_5: i2c@7af5000 { /* BLSP2 QUP1 */
 		qcom,noise-rjct-scl = <3>;
 		qcom,noise-rjct-sda = <3>;
 	};
-
-	qcom,wdt@b017000 {
-		qcom,bark-time = <20000>;
-		qcom,pet-time = <15000>;
-	};
-
-	/delete-node/ qseecom@85b00000;
-	qcom_seecom: qseecom@84a00000 {
-		compatible = "qcom,qseecom";
-		reg = <0x84a00000 0x1900000>;
-		reg-names = "secapp-region";
-		qcom,hlos-num-ce-hw-instances = <1>;
-		qcom,hlos-ce-hw-instance = <0>;
-		qcom,qsee-ce-hw-instance = <0>;
-		qcom,disk-encrypt-pipe-pair = <2>;
-		qcom,support-fde;
-		qcom,msm-bus,name = "qseecom-noc";
-		qcom,msm-bus,num-cases = <4>;
-		qcom,msm-bus,num-paths = <1>;
-		qcom,support-bus-scaling;
-		qcom,appsbl-qseecom-support;
-		qcom,msm-bus,vectors-KBps =
-			<55 512 0 0>,
-			<55 512 0 0>,
-			<55 512 120000 1200000>,
-			<55 512 393600 3936000>;
-		clocks = <&clock_gcc clk_crypto_clk_src>,
-			 <&clock_gcc clk_gcc_crypto_clk>,
-			 <&clock_gcc clk_gcc_crypto_ahb_clk>,
-			 <&clock_gcc clk_gcc_crypto_axi_clk>;
-		clock-names = "core_clk_src", "core_clk",
-				"iface_clk", "bus_clk";
-		qcom,ce-opp-freq = <100000000>;
-	};
-
-	qcom,mss@4080000 {
-		/delete-property/ qcom,pil-mss-memsetup;
-		/delete-property/ qcom,pas-id;
-	};
-
-
-
-	qusb_phy: qusb@79000 {
-		qcom,qusb-phy-init-seq = <0xF8 0x80
-					0x53 0x84
-					0x83 0x88
-					0xCF 0x8C
-					0x14 0x9C
-					0x30 0x08
-					0x79 0x0C
-					0x21 0x10
-					0x00 0x90
-					0x9F 0x1C
-					0x00 0x18>;
-
-	};
-
-
-
 
 };
 
