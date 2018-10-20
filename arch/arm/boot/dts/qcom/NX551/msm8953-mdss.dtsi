@@ -16,13 +16,14 @@
 			/delete-property/ vdd-supply;
 			/delete-property/ lab-supply;
 			/delete-property/ ibb-supply;
+			vddio-supply = <&pm8953_l22>;
 		};
 
 		mdss_dsi1: qcom,mdss_dsi_ctrl1@1a96000 {
-			/delete-property/vdd-supply;
+			/delete-property/ vdd-supply;
 			/delete-property/ lab-supply;
 			/delete-property/ ibb-supply;
-
+			vddio-supply = <&pm8953_l6>;
 		};
 	};
 
