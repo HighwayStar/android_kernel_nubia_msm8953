@@ -23,11 +23,6 @@
 		};
 	};
 
-
-	qcom,msm-dai-q6 {
-		/delete-node/ qcom,msm-dai-q6-afe-loopback-tx;
-		/delete-node/ qcom,msm-dai-q6-sb-6-rx;
-	};
 	int_codec: sound {
 		qcom,audio-routing =
 			"RX_BIAS", "MCLK",
