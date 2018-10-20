@@ -380,6 +380,7 @@
 
 				config {
 					pins = "gpio61", "gpio128";
+					/delete-property/ output-high;
 				};
 			};
 
@@ -407,13 +408,6 @@
 				/delete-node/ config;
 			};
 		};
-/*		/delete-node/ cam_sensor_rear_sleep1;
-		/delete-node/ cam_sensor_rear_vdig1;
-		/delete-node/ cam_sensor_rear_vdig_sleep1;
-		/delete-node/ cam_sensor_rear_default1;
-		/delete-node/ blsp2_uart0_active;
-		/delete-node/ blsp2_uart0_sleep; */
-		/delete-node/ pmx_adv7533_int;
 
 		sec-tlmm-lines {
 			sec_tlmm_lines_act: sec_tlmm_lines_act {

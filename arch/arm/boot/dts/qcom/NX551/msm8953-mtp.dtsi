@@ -212,8 +212,8 @@
 	qcom,dsi-pref-prim-pan = <&dsi_gvo_rm67195_1080_5p2_cmd>;
 	qcom,platform-enable-gpio = <&tlmm 128 0>;
 	qcom,platform-fd-gpio = <&tlmm 41 0>;
+	/delete-property/ qcom,platform-bklight-en-gpio;
 };
-
 
 &dsi_gvo_rm67195_1080_5p2_cmd {
         //qcom,cont-splash-enabled;
