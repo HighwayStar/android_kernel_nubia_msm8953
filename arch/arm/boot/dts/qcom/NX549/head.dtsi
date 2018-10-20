@@ -9,7 +9,5 @@
 #include "msm8953-mdss-panels.dtsi"
 #include "msm8953-mtp-breathlight.dtsi"
 #include "msm8953-mtp.dtsi"
-#include "msm8953-regulator.dtsi"
-#include "msm-pm8953.dtsi"
 #include "msm-pmi8950.dtsi"
 

@@ -16,7 +16,6 @@
 	qcom,model = "msm8953-snd-card-mtp";
 
         qcom,cdc-ext-amp-gpios = <&tlmm 25 0>;
-	qcom,msm-mbhc-hphl-swh = <1>;
 	qcom,msm-hs-micbias-type = "external";
 	/delete-property/ qcom,cdc-us-euro-gpios;
 
@@ -110,11 +109,6 @@
 		&cdc_pdm_lines_2_act &cross_conn_det_act
 		&cdc_dmic_clk_act &cdc_dmic_lines_act &pri_tlmm_ws_act>;
 
-	/delete-property/ asoc-wsa-codec-names;
-	/delete-property/ asoc-wsa-codec-prefixes;
-	/delete-property/ msm-vdd-wsa-switch-supply;
-	/delete-property/ qcom,msm-vdd-wsa-switch-voltage;
-	/delete-property/ qcom,msm-vdd-wsa-switch-current;
 };
 
 
@@ -123,10 +117,5 @@
 
 	qcom,msm-mbhc-hphl-swh = <0>;
 	qcom,msm-mbhc-gnd-swh = <0>;
-	/delete-property/ qcom,cdc-us-euro-gpios;
-	/delete-property/ qcom,wsa-devs;
-	/delete-property/ qcom,wsa-aux-dev-prefix;
-	/delete-property/ qcom,wsa-max-devs;
-
 };
 
