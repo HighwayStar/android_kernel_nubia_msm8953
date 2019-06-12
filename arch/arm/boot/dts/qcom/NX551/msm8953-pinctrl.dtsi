@@ -289,28 +289,14 @@
 			};
 		};
 		hall_device_int{
-			hall_default: active {
-				mux {
-					pins = "gpio38";
-					function = "gpio";
-				};
-				config {
-					pins="gpio38";
-					drive-strength = <6>;
-					bias-pull-up;
-				};
+			label = "hall_irq";
+			mux {
+				pins = "gpio38";
+				function = "gpio";
 			};
-
-			hall_sleep: suspend {
-				mux {
-					pins = "gpio38";
-					function = "gpio";
-				};
-				config{
-					pins= "gpio38";
-					drive-strength = <2>;
-					bias-pull-up;
-				};
+			hall_sensor_int_default: hall_sensor_int_default {
+				drive-strength = <6>;
+				bias-pull-up;
 			};
 		};
 		//add by nubia sensors end

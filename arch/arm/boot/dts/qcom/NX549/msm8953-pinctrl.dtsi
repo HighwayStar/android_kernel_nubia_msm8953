@@ -291,29 +291,15 @@
 				};
 			};
 		};
-		hall_int_0_pin{
-			hall_int_0_default: hall_int_0_default {
-			 mux {
-					pins = "gpio46";
-					function = "gpio";
-				};
-			config {
-				pins="gpio46";
+		hall_device_int{
+			label = "hall_irq";
+			mux {
+				pins = "gpio46";
+				function = "gpio";
+			};
+			hall_sensor_int_default: hall_sensor_int_default {
 				drive-strength = <6>;
 				bias-pull-up;
-				};
-			};
-
-		hall_int_0_sleep: hall_int_0_sleep {
-			 mux {
-					pins = "gpio46";
-					function = "gpio";
-				};
-			config{
-				pins= "gpio46";
-				drive-strength = <6>;
-				bias-high-impedance;
-				};
 			};
 		};
 		/* used for spi6 and fingerprint added by nubia */
