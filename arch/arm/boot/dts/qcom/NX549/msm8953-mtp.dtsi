@@ -123,16 +123,17 @@
 		};
 	};
 
-	hall_device_out {
-		compatible = "nubia,hall_device";
-		status = "okay";
-		pinctrl-names = "hall_default","hall_sleep";
-		pinctrl-0 = <&hall_int_0_default >;
-		pinctrl-1 = <&hall_int_0_sleep >;
-		vio-supply = <&pm8953_l5>;
+	hall_switch {
+		compatible = "hall-switch";
+		pinctrl-names = "default";
+		pinctrl-0 = <&hall_sensor_int_default>;
 		interrupt-parent = <&tlmm>;
-		hall_device,hw_device_count = <1>;
-		hall_device,irq-gpio-0 = <&tlmm 46 0x2002>;
+		interrupts = <46 0x2002>;
+		vddio-supply = <&pm8953_l5>;
+		linux,gpio-int = <&tlmm 46 0x1>;
+		linux,wakeup;
+		linux,min-uv = <1750000>;
+		linux,max-uv = <1950000>;
 	};
 };
 
